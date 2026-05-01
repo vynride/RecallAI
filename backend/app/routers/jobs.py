@@ -163,7 +163,7 @@ async def get_pdf(
     pdf_path = SETTINGS.result_dir / f"{job.id}.pdf"
     if not pdf_path.exists():
         raise HTTPException(status.HTTP_409_CONFLICT, "pdf not ready")
-    disposition = "inline" if inline else f'attachment; filename="recallai-{job.id}.pdf"'
+    disposition = "inline" if inline else f'attachment; filename="RecallAI-{str(job.id)[:8]}.pdf"'
     return FileResponse(
         pdf_path,
         media_type="application/pdf",
