@@ -175,7 +175,8 @@ h4 {
 p { margin: 0 0 0.6em; }
 
 ul, ol { padding-left: 1.2em; margin: 0.4em 0 0.8em; }
-li { margin-bottom: 0.35em; }
+li { margin-bottom: 0.35em; color: #003c33; }
+li p { color: #003c33; }
 
 ul > li { list-style: none; position: relative; padding-left: 0; }
 ul > li::before {
@@ -192,8 +193,6 @@ ul > li::before {
 
 strong { color: #17171c; font-weight: 600; }
 em { color: #616161; font-style: normal; }
-
-li { color: #003c33; }
 
 a { color: #1863dc; text-decoration: none; }
 
