@@ -1,64 +1,105 @@
-# RecallAI - PYQ Analyzer
+# RecallAI
 
-An AI-powered tool that analyzes Previous Year Question Papers (PYQs) and transforms them into structured, organized study materials. RecallAI extracts questions from PDF documents, categorizes them by topic, ranks them by difficulty, and generates beautifully formatted outputs ready for export.
+AI-powered Previous Year Question Paper (PYQ) analyzer. Upload past exam PDFs and get back a structured, topic-sorted, difficulty-ranked study guide — as both Markdown and a styled PDF.
 
-Stack: **Next.js** frontend, **FastAPI + Celery** backend, **Postgres + Redis**, deployed via Docker Compose with **nginx** and **Umami** analytics. See [`PLAN.md`](PLAN.md) for the architecture and [`ARCHITECTURE.md`](ARCHITECTURE.md) for design notes.
+**Stack:** Next.js 16 · FastAPI · Celery · PostgreSQL · Redis · WeasyPrint · Docker Compose · Umami
+
+---
 
 ## Features
 
-- **AI-powered question extraction** using Google Gemini
+- **AI analysis** via Google Gemini — extracts, categorizes, and ranks questions
 - **OCR fallback** for scanned PDFs (EasyOCR + Tesseract)
-- **Image extraction** preserves diagrams from question papers
-- **Topic categorization** by curriculum terminology
-- **Difficulty ranking** (Easy / Moderate / Challenging) within each topic
-- **PDF export** via WeasyPrint
-- **Background processing** via Celery workers with progress streaming over SSE
-- **Analytics** via self-hosted Umami
+- **Image extraction** preserves diagrams and figures
+- **PDF + Markdown export** — WeasyPrint-rendered, styled output
+- **Real-time progress** via SSE streaming
+- **Background workers** — Celery queue + beat scheduler (auto-fails hung tasks after 25 min)
+- **Auth** — Google and GitHub OAuth via Auth.js (next-auth v5)
+- **Encrypted API keys** — Gemini key stored encrypted per user, sent per-request
+- **Analytics** — self-hosted Umami
 
 ## Prerequisites
 
 - Docker + Docker Compose
-- Google Gemini API key ([aistudio.google.com/apikey](https://aistudio.google.com/apikey))
+- Google Gemini API key — [aistudio.google.com/apikey](https://aistudio.google.com/apikey)
+- Google and/or GitHub OAuth app credentials
 
 ## Run locally
 
 ```bash
 git clone https://github.com/vynride/RecallAI.git
 cd RecallAI
-cp .env.example .env   # fill in OAuth + secrets
+cp .env.example .env   # fill in OAuth secrets + Gemini pepper
 docker compose up --build
 ```
 
-- Frontend: `http://localhost:3000`
-- Backend API: `http://localhost:8000`
-- Umami: `http://localhost:3000/umami` (via nginx in prod compose)
+`docker-compose.override.yml` is applied automatically — it bind-mounts source directories and enables hot reload for both the Next.js frontend and the FastAPI backend/workers.
 
-For production, use `docker-compose.prod.yml` which fronts everything with nginx.
+| Service  | URL                        |
+|----------|----------------------------|
+| Frontend | http://localhost:3000      |
+| API      | http://localhost:8000      |
+| Umami    | http://localhost:3001      |
+
+## Production
+
+```bash
+docker compose -f docker-compose.yml -f docker-compose.prod.yml up -d
+```
+
+The prod override adds nginx (reverse proxy + SSL termination) and tighter resource caps. See `infra/nginx/` for the nginx config.
+
+## Environment variables
+
+Copy `.env.example` and fill in:
+
+| Variable | Description |
+|---|---|
+| `AUTH_SECRET` | Auth.js secret (random string) |
+| `GOOGLE_CLIENT_ID/SECRET` | Google OAuth app |
+| `GITHUB_CLIENT_ID/SECRET` | GitHub OAuth app |
+| `GEMINI_KEY_PEPPER` | Server-side pepper for encrypting user API keys |
+| `POSTGRES_USER/PASSWORD/DB` | PostgreSQL credentials |
+| `RECALLAI_DATA_DIR` | Host path for Docker volume bind-mounts (must be on a POSIX-compatible FS) |
+| `UMAMI_APP_SECRET` | Umami analytics secret |
+| `NEXT_PUBLIC_UMAMI_WEBSITE_ID` | Umami site ID |
+| `NEXT_PUBLIC_UMAMI_SCRIPT_URL` | Umami script URL |
+
+## Supported models
+
+| Model | Notes |
+|---|---|
+| `gemini-3.1-pro-preview` | Highest accuracy, slower |
+| `gemini-3-flash-preview` | Fast, balanced — **default** |
+| `gemini-3.1-flash-lite-preview` | Lightweight |
 
 ## Project layout
 
 ```
 RecallAI/
-├── backend/        # FastAPI + Celery (workers, beat, API)
-├── client/         # Next.js 16 frontend
-├── infra/          # nginx + deployment config
-├── docker-compose.yml
-├── docker-compose.prod.yml
-├── PLAN.md
-└── ARCHITECTURE.md
+├── backend/
+│   └── app/
+│       ├── api/            # FastAPI routes
+│       ├── models/         # SQLAlchemy models
+│       ├── services/       # ai_pipeline, pdf_extractor, markdown_to_pdf
+│       ├── templates/      # Gemini system prompt + PDF stylesheet
+│       └── workers/        # Celery tasks + beat scheduler
+├── client/
+│   ├── app/                # Next.js App Router pages
+│   └── components/         # UI components
+├── infra/
+│   └── nginx/              # nginx config for production
+├── docker-compose.yml          # Base services
+├── docker-compose.override.yml # Dev hot-reload (auto-applied)
+└── docker-compose.prod.yml     # Production overrides
 ```
 
-## Supported models
+## Output format
 
-- `gemini-2.5-flash` — fast, balanced
-- `gemini-2.5-pro` — higher accuracy, slower
-- `gemini-2.5-flash-lite-preview-06-17` — lightweight
-- `gemini-2.0-flash` — older stable
+Each processed task produces:
 
-## Output
-
-Structured Markdown (and PDF) containing:
-- Questions grouped by topic, ranked by difficulty
-- Preserved formatting (code blocks, special characters)
-- Image placeholders for diagrams from the source PDFs
-- Frequency summary statistics
+- Questions grouped by topic, sorted by difficulty (Easy → Moderate → Challenging)
+- Preserved formatting: code blocks, pseudo-code, equations, image placeholders
+- Tags: difficulty pill + question type pill per question
+- Frequency summary tables (by topic, difficulty, type)
+- Downloadable styled PDF + raw Markdown
