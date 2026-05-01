@@ -1,5 +1,4 @@
-# Local development compose. The prod override (docker-compose.prod.yml)
-# adds nginx + tighter resource caps + cert volumes.
+# Local development compose. 
 
 services:
   postgres:
