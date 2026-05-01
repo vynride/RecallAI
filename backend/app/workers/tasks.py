@@ -119,6 +119,31 @@ def run_pipeline(job_id: str, gemini_key: str) -> None:
     asyncio.run(_run(job_id, gemini_key))
 
 
+@celery.task(name="app.workers.tasks.fail_hung_jobs")
+def fail_hung_jobs() -> None:
+    asyncio.run(_fail_hung())
+
+
+async def _fail_hung() -> None:
+    """Mark jobs stuck in a non-terminal state for >25 min as error."""
+    cutoff = datetime.now(timezone.utc) - timedelta(minutes=25)
+    hung = [JobStatus.queued, JobStatus.extracting, JobStatus.analyzing, JobStatus.rendering_pdf]
+    async with _Session() as session:
+        rows = (
+            await session.execute(
+                select(Job).where(Job.status.in_(hung), Job.created_at < cutoff)
+            )
+        ).scalars().all()
+        for job in rows:
+            job.status = JobStatus.error
+            job.error_message = "Job timed out — no progress after 25 minutes."
+            job.completed_at = datetime.now(timezone.utc)
+            logger.warning("timed out hung job %s", job.id)
+        if rows:
+            await session.commit()
+            logger.info("failed %d hung jobs", len(rows))
+
+
 @celery.task(name="app.workers.tasks.cleanup_expired_jobs")
 def cleanup_expired_jobs() -> None:
     asyncio.run(_cleanup())

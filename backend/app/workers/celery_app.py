@@ -34,4 +34,8 @@ celery.conf.beat_schedule = {
         "task": "app.workers.tasks.cleanup_expired_jobs",
         "schedule": 60 * 30,  # every 30 min
     },
+    "fail-hung-jobs": {
+        "task": "app.workers.tasks.fail_hung_jobs",
+        "schedule": 60 * 5,  # every 5 min
+    },
 }

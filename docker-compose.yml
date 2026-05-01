@@ -12,7 +12,7 @@ services:
     volumes:
       - pg_data:/var/lib/postgresql/data
     healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER:-recallai}"]
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER:-recallai} -d ${POSTGRES_DB:-recallai}"]
       interval: 5s
       timeout: 3s
       retries: 10
@@ -100,7 +100,7 @@ services:
     volumes:
       - umami_pg_data:/var/lib/postgresql/data
     healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U ${UMAMI_DB_USER:-umami}"]
+      test: ["CMD-SHELL", "pg_isready -U ${UMAMI_DB_USER:-umami} -d ${UMAMI_DB_NAME:-umami}"]
       interval: 5s
       timeout: 3s
       retries: 10
