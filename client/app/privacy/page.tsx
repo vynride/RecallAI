@@ -4,7 +4,7 @@ import { Nav } from "@/components/landing/Nav";
 import { Footer } from "@/components/landing/Footer";
 
 export const metadata: Metadata = {
-  title: "Privacy Policy | RecallAI",
+  title: "Privacy Policy",
 };
 
 export default async function PrivacyPage() {

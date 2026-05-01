@@ -1,3 +1,4 @@
+import type { Metadata } from "next";
 import { auth } from "@/lib/auth";
 
 import { Announcement } from "@/components/landing/Announcement";
@@ -9,6 +10,13 @@ import { DarkBand } from "@/components/landing/DarkBand";
 import { PdfShowcase } from "@/components/landing/PdfShowcase";
 import { CTA } from "@/components/landing/CTA";
 import { Footer } from "@/components/landing/Footer";
+
+export const metadata: Metadata = {
+  title: "RecallAI | Question papers, decoded.",
+  description:
+    "Upload past question papers, get a topic-sorted, difficulty-ranked PDF you can study from. Bring Your Own Gemini Key.",
+  alternates: { canonical: "/" },
+};
 
 export default async function Page() {
   const session = await auth();

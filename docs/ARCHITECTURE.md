@@ -13,7 +13,8 @@ Browser
   │
   ▼
 nginx (system, 80/443)
-  ├── /api/auth/      → frontend:3000   (NextAuth — must come before /api/)
+  ├── /api/auth/      → frontend:3000   (NextAuth)
+  ├── /api/proxy/     → frontend:3000   (Next.js server-side proxy to FastAPI)
   ├── /api/           → backend:8000    (FastAPI)
   ├── /umami/script.js → umami:3001     (tracking script — public)
   ├── /umami/api/send  → umami:3001     (data collection — public)
