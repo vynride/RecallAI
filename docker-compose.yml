@@ -107,7 +107,6 @@ services:
       DATABASE_URL: postgresql://${UMAMI_DB_USER:-umami}:${UMAMI_DB_PASSWORD:-umami}@umami-db:5432/${UMAMI_DB_NAME:-umami}
       DATABASE_TYPE: postgresql
       APP_SECRET: ${UMAMI_APP_SECRET:-change-me}
-      BASE_PATH: /umami
     depends_on:
       umami-db: { condition: service_healthy }
 
