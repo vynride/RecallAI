@@ -193,6 +193,8 @@ ul > li::before {
 strong { color: #17171c; font-weight: 600; }
 em { color: #616161; font-style: normal; }
 
+li { color: #003c33; }
+
 a { color: #1863dc; text-decoration: none; }
 
 blockquote {
