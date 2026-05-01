@@ -54,7 +54,6 @@ export function ResultTabs({ job }: { job: Job }) {
       <div className="border-b border-card-border bg-soft-stone/40">
         <div className="px-5 pt-4">
           <p className="font-mono text-xs uppercase tracking-widest text-coral">Results</p>
-          <p className="mt-0.5 text-sm text-body-muted">AI-generated study guide from your documents</p>
         </div>
         <div className="mt-3 flex items-center justify-between px-5 pb-3">
           <div className="flex gap-1">
@@ -101,9 +100,11 @@ export function ResultTabs({ job }: { job: Job }) {
           </div>
         )
       ) : (
-        <pre className="p-6 text-xs font-mono leading-relaxed whitespace-pre-wrap text-ink max-h-[720px] overflow-auto">
-          {markdown ?? "Loading…"}
-        </pre>
+        <div className="bg-soft-stone/40 border-l-2 border-coral/30 m-4 rounded-sm overflow-auto max-h-[720px]">
+          <pre className="p-6 text-xs font-mono leading-relaxed whitespace-pre-wrap text-ink">
+            {markdown ?? "Loading…"}
+          </pre>
+        </div>
       )}
     </section>
   );

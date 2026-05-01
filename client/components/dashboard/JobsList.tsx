@@ -81,7 +81,7 @@ export function JobsList() {
   if (jobs.length === 0) {
     return (
       <div className="rounded-sm border border-dashed border-hairline px-6 py-12 text-center">
-        <p className="text-sm text-muted">No jobs yet. Drop some PDFs above to get started.</p>
+        <p className="text-sm text-muted">No tasks yet. Drop some PDFs above to get started.</p>
       </div>
     );
   }

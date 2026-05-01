@@ -62,7 +62,16 @@ The output MUST be clean, structured Markdown, suitable for direct PDF export. I
         ...
         ```
     *   Ensure there is a **blank line BEFORE `- Q:`** and a **blank line AFTER the `**Source:...**` line** for every question, effectively separating each question block.
-    *   Format any code or pseudo-code sections within a question using triple backticks (``` ```).
+    *   **Code and Pseudo-code:** ALWAYS use fenced triple-backtick blocks for ALL of the following — no exceptions:
+        *   Real code (any language)
+        *   Pseudo-code or algorithm steps
+        *   Mathematical expressions or equations (use ` ```math ` as the language tag)
+        *   Recurrence relations, Big-O expressions, or formal notation
+        *   Anything that looks like structured notation, not natural prose
+
+    *   **Sub-parts:** If a question has sub-parts — whether labeled (a), (b), (c) or (i), (ii), (iii) or any similar scheme — EACH sub-part MUST begin on its own new line with a blank line before it. Do NOT run sub-parts together in a single paragraph.
+
+    *   **Equations on their own line:** Every mathematical equation or expression MUST be placed on its own dedicated line inside a ` ```math ` fenced block. Never embed equations inline within prose if they contain operators, fractions, summations, or anything beyond a simple variable reference.
 
     *   **Example (with image):**
         ```markdown

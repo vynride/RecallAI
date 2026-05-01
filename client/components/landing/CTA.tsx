@@ -15,7 +15,7 @@ export function CTA({ signedIn }: { signedIn: boolean }) {
             Bring your own key
           </p>
           <h2 className="mt-3 text-3xl md:text-4xl font-medium tracking-tight">
-            Your key is never stored.
+            Your key is secure.
           </h2>
           <p className="mt-4 text-on-dark/60 text-lg leading-relaxed">
             Bring your Gemini API key. We use it for the job and nothing else.
