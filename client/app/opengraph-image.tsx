@@ -20,13 +20,7 @@ export default function Image() {
       >
         {/* Logo + brand name */}
         <div style={{ display: "flex", alignItems: "center", gap: "16px" }}>
-          <svg
-            width="52"
-            height="52"
-            viewBox="0 0 48 48"
-            fill="none"
-            xmlns="http://www.w3.org/2000/svg"
-          >
+          <svg width="52" height="52" viewBox="0 0 48 48" fill="none">
             <rect width="48" height="48" rx="11" fill="#ff7759" />
             <path
               d="M24 12 A12 12 0 1 1 12 24"
@@ -53,32 +47,54 @@ export default function Image() {
         </div>
 
         {/* Main content */}
-        <div style={{ display: "flex", flexDirection: "column", gap: "20px" }}>
-          <div
-            style={{
-              color: "#ffffff",
-              fontSize: 72,
-              fontWeight: 800,
-              lineHeight: 1.05,
-              letterSpacing: "-2px",
-              fontFamily: "sans-serif",
-            }}
-          >
-            Question papers,
-            <br />
-            decoded.
+        <div style={{ display: "flex", flexDirection: "column", gap: "16px" }}>
+          <div style={{ display: "flex", flexDirection: "column" }}>
+            <div
+              style={{
+                color: "#ffffff",
+                fontSize: 72,
+                fontWeight: 800,
+                lineHeight: 1.05,
+                letterSpacing: "-2px",
+                fontFamily: "sans-serif",
+              }}
+            >
+              Question papers,
+            </div>
+            <div
+              style={{
+                color: "#ffffff",
+                fontSize: 72,
+                fontWeight: 800,
+                lineHeight: 1.05,
+                letterSpacing: "-2px",
+                fontFamily: "sans-serif",
+              }}
+            >
+              decoded.
+            </div>
           </div>
-          <div
-            style={{
-              color: "#9ca3af",
-              fontSize: 26,
-              lineHeight: 1.5,
-              fontFamily: "sans-serif",
-            }}
-          >
-            Upload past papers, get a topic-sorted,
-            <br />
-            difficulty-ranked PDF you can actually study from.
+          <div style={{ display: "flex", flexDirection: "column" }}>
+            <div
+              style={{
+                color: "#9ca3af",
+                fontSize: 26,
+                lineHeight: 1.5,
+                fontFamily: "sans-serif",
+              }}
+            >
+              Upload past papers, get a topic-sorted,
+            </div>
+            <div
+              style={{
+                color: "#9ca3af",
+                fontSize: 26,
+                lineHeight: 1.5,
+                fontFamily: "sans-serif",
+              }}
+            >
+              difficulty-ranked PDF you can actually study from.
+            </div>
           </div>
         </div>
 
