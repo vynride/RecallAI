@@ -123,9 +123,9 @@ export function JobView({ jobId }: { jobId: string }) {
   const isRunning = !["done", "error"].includes(job.status);
 
   const headingText =
-    job.status === "done"  ? "Job Complete"
-    : job.status === "error" ? "Job Failed"
-    : "Processing Job";
+    job.status === "done"  ? "Task Complete"
+    : job.status === "error" ? "Task Failed"
+    : "Processing Task";
 
   const headerTheme =
     job.status === "done"
@@ -142,7 +142,7 @@ export function JobView({ jobId }: { jobId: string }) {
           href="/dashboard"
           className="inline-flex items-center gap-1 text-sm text-muted hover:text-ink transition hover:underline underline-offset-4"
         >
-          ← Back to jobs
+          ← Back to tasks
         </Link>
 
         <div className={`mt-4 rounded-lg ${headerTheme.bg} border ${headerTheme.border} overflow-hidden`}>
@@ -171,11 +171,6 @@ export function JobView({ jobId }: { jobId: string }) {
                   </span>
                 </div>
 
-                {job.status === "done" && (
-                  <p className="mt-2 font-mono text-xs text-deep-green/70">
-                    Your study guide is ready below ↓
-                  </p>
-                )}
               </div>
 
               {isRunning && (
