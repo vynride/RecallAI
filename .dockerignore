@@ -1,0 +1,14 @@
+**/.git
+**/node_modules
+**/.next
+**/__pycache__
+**/*.pyc
+**/.venv
+**/venv
+**/.env
+**/.env.*
+!**/.env.example
+**/.DS_Store
+client/.next
+backend/.pytest_cache
+logs/

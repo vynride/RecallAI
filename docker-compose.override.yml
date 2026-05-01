@@ -1,0 +1,39 @@
+# Development overrides — applied automatically by `docker compose up`.
+# Source is bind-mounted so code changes are picked up without rebuilding.
+#
+# Frontend note: node_modules stays inside the container (from the image build).
+# Only source directories are mounted. If you add packages, rebuild:
+#   docker compose build frontend
+
+services:
+  backend:
+    volumes:
+      - ./backend/app:/app/app
+      - ./backend/alembic:/app/alembic
+    command: >
+      sh -c "alembic upgrade head &&
+             uvicorn app.main:app --host 0.0.0.0 --port 8000 --reload"
+
+  worker:
+    volumes:
+      - ./backend/app:/app/app
+
+  beat:
+    volumes:
+      - ./backend/app:/app/app
+
+  frontend:
+    build:
+      context: ./client
+      target: deps
+    volumes:
+      - ./client/app:/app/app
+      - ./client/components:/app/components
+      - ./client/lib:/app/lib
+      - ./client/public:/app/public
+      - ./client/next.config.ts:/app/next.config.ts
+      - ./client/tsconfig.json:/app/tsconfig.json
+      - ./client/postcss.config.mjs:/app/postcss.config.mjs
+    command: ["npm", "run", "dev"]
+    environment:
+      NODE_ENV: development
