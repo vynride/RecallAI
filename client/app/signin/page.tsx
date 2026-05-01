@@ -25,8 +25,8 @@ function GitHubIcon() {
 const FEATURES = [
   "Reads typed, scanned, and image PDFs",
   "Questions sorted by topic and difficulty",
-  "Study-ready PDF — no reformatting needed",
-  "Free Gemini API tier works just fine",
+  "Study-ready PDF, no reformatting needed",
+  "Bring your own Gemini API key, no strings attached",
 ];
 
 export default async function SignInPage({
@@ -47,7 +47,7 @@ export default async function SignInPage({
   return (
     <main className="min-h-screen grid lg:grid-cols-2">
 
-      {/* Left — branded dark panel */}
+      {/* Left: branded dark panel */}
       <div className="hidden lg:flex flex-col bg-primary text-on-dark p-12">
         <Link href="/" className="flex items-center gap-2">
           <span className="w-2 h-2 rounded-full bg-coral" />
@@ -56,7 +56,7 @@ export default async function SignInPage({
 
         <div className="flex-1 flex flex-col justify-center max-w-md">
           <p className="font-mono text-xs uppercase tracking-[0.2em] text-coral">
-            For students who actually want to pass
+            Less panic. More prep.
           </p>
           <h1 className="mt-4 text-4xl font-medium tracking-tight leading-[1.1]">
             Your exam papers,<br />decoded overnight.
@@ -79,7 +79,7 @@ export default async function SignInPage({
         <p className="text-xs text-on-dark/25 font-mono">© RecallAI</p>
       </div>
 
-      {/* Right — sign-in form */}
+      {/* Right: sign-in form */}
       <div className="flex flex-col bg-canvas">
         {/* Mobile logo */}
         <div className="lg:hidden px-6 h-16 flex items-center border-b border-card-border">
@@ -100,37 +100,22 @@ export default async function SignInPage({
 
             <div className="mt-8 space-y-3">
               <form action={withGoogle}>
-                <Button
-                  type="submit"
-                  size="lg"
-                  className="w-full gap-3"
-                >
+                <Button type="submit" size="lg" className="w-full gap-3">
                   <GoogleIcon />
                   Continue with Google
                 </Button>
               </form>
               <form action={withGitHub}>
-                <Button
-                  type="submit"
-                  size="lg"
-                  variant="outline"
-                  className="w-full gap-3"
-                >
+                <Button type="submit" size="lg" variant="outline" className="w-full gap-3">
                   <GitHubIcon />
                   Continue with GitHub
                 </Button>
               </form>
             </div>
 
-            <div className="mt-8 p-4 rounded-sm bg-soft-stone">
-              <p className="text-xs text-body-muted leading-relaxed">
-                You&apos;ll add your Gemini API key after sign-in. It&apos;s never stored.
-              </p>
-            </div>
-
-            <p className="mt-6 text-center text-xs text-muted">
+            <p className="mt-8 text-center text-xs text-muted">
               <Link href="/" className="underline underline-offset-2 hover:text-primary transition">
-                ← Back to home
+                Back to home
               </Link>
             </p>
           </div>

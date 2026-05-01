@@ -1,7 +1,7 @@
 @import "tailwindcss";
 
 @theme {
-  /* Cohere palette — see DESIGN.md */
+  /* Cohere palette - see DESIGN.md */
   --color-primary: #17171c;
   --color-cohere-black: #000000;
   --color-ink: #212121;
@@ -53,7 +53,7 @@ html, body {
   -webkit-font-smoothing: antialiased;
 }
 
-/* Scrollbar — Chrome/Safari/Edge */
+/* Scrollbar - Chrome/Safari/Edge */
 ::-webkit-scrollbar {
   width: 7px;
   height: 7px;
@@ -69,7 +69,7 @@ html, body {
   background: var(--color-slate);
 }
 
-/* Scrollbar — Firefox */
+/* Scrollbar - Firefox */
 * {
   scrollbar-width: thin;
   scrollbar-color: var(--color-hairline) var(--color-soft-stone);

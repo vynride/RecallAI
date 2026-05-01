@@ -41,7 +41,7 @@ export function JobsList() {
     return <p className="text-sm text-muted">Loading jobs…</p>;
   }
   if (jobs.length === 0) {
-    return <p className="text-sm text-muted">No jobs yet — drop some PDFs above to get started.</p>;
+    return <p className="text-sm text-muted">No jobs yet. Drop some PDFs above to get started.</p>;
   }
 
   return (

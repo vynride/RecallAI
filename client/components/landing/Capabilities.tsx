@@ -7,7 +7,7 @@ const CARDS = [
   {
     icon: FileSearch,
     title: "Reads everything",
-    body: "Typed, scanned, image-heavy — it handles all of it.",
+    body: "Typed, scanned, image-heavy. It handles all of it.",
     iconBg: "bg-coral/10 text-coral",
   },
   {

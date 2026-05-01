@@ -18,7 +18,7 @@ export function PdfShowcase() {
           </h2>
           <p className="mt-6 text-lg text-body-muted leading-relaxed max-w-lg">
             Every question tagged by difficulty. High-frequency topics surfaced so you study
-            what's actually tested — not what you already know. Hover the preview to see
+            what's actually tested, not what you already know. Hover the preview to see
             the transformation.
           </p>
         </div>
