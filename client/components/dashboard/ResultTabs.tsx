@@ -15,8 +15,10 @@ export function ResultTabs({ job }: { job: Job }) {
   const [pdfBlobUrl, setPdfBlobUrl] = useState<string | null>(null);
   const [pdfError, setPdfError] = useState(false);
 
-  // Fetch PDF as blob to avoid Content-Disposition / iframe header issues
+  // Fetch PDF as blob to avoid Content-Disposition / iframe header issues.
+  // Wait until has_pdf is confirmed to avoid a premature 404.
   useEffect(() => {
+    if (!job.has_pdf) return;
     let revoke: string | null = null;
     fetch(api.jobs.pdfUrl(job.id, true))
       .then((r) => {
@@ -30,7 +32,7 @@ export function ResultTabs({ job }: { job: Job }) {
       })
       .catch(() => setPdfError(true));
     return () => { if (revoke) URL.revokeObjectURL(revoke); };
-  }, [job.id]);
+  }, [job.id, job.has_pdf]);
 
   useEffect(() => {
     if (tab !== "markdown" || markdown !== null) return;
@@ -80,7 +82,12 @@ export function ResultTabs({ job }: { job: Job }) {
       </div>
 
       {tab === "preview" ? (
-        pdfError ? (
+        !job.has_pdf ? (
+          <div className="flex h-64 items-center justify-center gap-2 text-sm text-muted">
+            <Loader size={14} className="animate-spin" />
+            Finalizing your results…
+          </div>
+        ) : pdfError ? (
           <div className="flex h-64 items-center justify-center text-sm text-muted">
             Preview unavailable.{" "}
             <button onClick={handleDownload} className="ml-1 underline underline-offset-2 hover:text-ink transition">
