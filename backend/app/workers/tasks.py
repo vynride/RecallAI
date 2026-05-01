@@ -8,6 +8,7 @@ from uuid import UUID
 
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import async_sessionmaker, create_async_engine
+from sqlalchemy.pool import NullPool
 
 from app.config import SETTINGS
 from app.models import Job, JobStatus
@@ -16,7 +17,10 @@ from app.workers.celery_app import celery
 
 logger = logging.getLogger(__name__)
 
-_engine = create_async_engine(SETTINGS.database_url, pool_pre_ping=True)
+# NullPool prevents connections from being shared across asyncio.run() calls —
+# each Celery task gets a fresh event loop so pooled connections would be
+# attached to the wrong loop.
+_engine = create_async_engine(SETTINGS.database_url, poolclass=NullPool)
 _Session = async_sessionmaker(_engine, expire_on_commit=False)
 
 CONCURRENT_KEY = "recallai:user-jobs:{user_id}"
