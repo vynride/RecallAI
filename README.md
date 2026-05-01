@@ -47,7 +47,7 @@ docker compose up --build
 docker compose -f docker-compose.yml -f docker-compose.prod.yml up -d
 ```
 
-The prod override adds nginx (reverse proxy + SSL termination) and tighter resource caps. See `infra/nginx/` for the nginx config.
+The prod override binds all containers to `127.0.0.1` only and adds resource caps. System nginx (not a container) handles TLS and reverse proxying — see `docs/DEPLOY.md` for the full setup.
 
 ## Environment variables
 
@@ -87,8 +87,10 @@ RecallAI/
 ├── client/
 │   ├── app/                # Next.js App Router pages
 │   └── components/         # UI components
-├── infra/
-│   └── nginx/              # nginx config for production
+├── docs/
+│   ├── ARCHITECTURE.md     # System design and API reference
+│   ├── DEPLOY.md           # VPS deployment guide
+│   └── PLAN.md             # Roadmap and known gaps
 ├── docker-compose.yml          # Base services
 ├── docker-compose.override.yml # Dev hot-reload (auto-applied)
 └── docker-compose.prod.yml     # Production overrides
