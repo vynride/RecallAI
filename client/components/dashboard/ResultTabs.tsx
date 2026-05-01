@@ -46,7 +46,7 @@ export function ResultTabs({ job }: { job: Job }) {
     track("pdf_downloaded", { job_id: job.id });
     const a = document.createElement("a");
     a.href = api.jobs.pdfUrl(job.id);
-    a.download = "RecallAI.pdf";
+    a.download = `RecallAI-${job.id.slice(0, 8)}.pdf`;
     a.click();
   };
 
