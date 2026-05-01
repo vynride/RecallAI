@@ -11,14 +11,41 @@ import logging
 from pathlib import Path
 
 from google import genai
+from google.api_core import exceptions as google_exc
+from google.genai import errors as genai_errors
 from google.genai import types
-from tenacity import retry, retry_if_exception_type, stop_after_attempt, wait_exponential
+from tenacity import (
+    retry,
+    retry_if_exception,
+    stop_after_attempt,
+    wait_random_exponential,
+    before_sleep_log,
+)
 
 from app.services.pdf_extractor import ExtractedImage
 
 logger = logging.getLogger(__name__)
 
 PROMPT_PATH = Path(__file__).resolve().parent.parent / "templates" / "pyq_system_prompt.txt"
+
+_RETRYABLE_GOOGLE_API_CORE = (
+    google_exc.ResourceExhausted,   # 429
+    google_exc.ServiceUnavailable,   # 503
+    google_exc.InternalServerError,  # 500
+)
+
+
+def _is_retryable(exc: BaseException) -> bool:
+    # google-genai SDK raises its own exception hierarchy (not google.api_core)
+    if isinstance(exc, genai_errors.ServerError):
+        return True  # all 5xx, including 503 UNAVAILABLE
+    if isinstance(exc, genai_errors.ClientError) and getattr(exc, "code", None) == 429:
+        return True  # rate limited
+    if isinstance(exc, _RETRYABLE_GOOGLE_API_CORE):
+        return True
+    if isinstance(exc, (ConnectionError, TimeoutError)):
+        return True
+    return False
 
 
 def load_system_prompt() -> str:
@@ -27,9 +54,10 @@ def load_system_prompt() -> str:
 
 @retry(
     reraise=True,
-    stop=stop_after_attempt(3),
-    wait=wait_exponential(multiplier=2, min=2, max=30),
-    retry=retry_if_exception_type(Exception),
+    stop=stop_after_attempt(8),
+    wait=wait_random_exponential(multiplier=1, min=5, max=90),
+    retry=retry_if_exception(_is_retryable),
+    before_sleep=before_sleep_log(logger, logging.WARNING),
 )
 async def generate_markdown(
     *,

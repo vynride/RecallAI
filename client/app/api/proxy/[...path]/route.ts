@@ -49,6 +49,7 @@ async function handle(req: Request, ctx: RouteContext<"/api/proxy/[...path]">) {
     headers,
     body: ["GET", "HEAD"].includes(req.method) ? undefined : req.body,
     duplex: "half",
+    signal: AbortSignal.timeout(20_000),
   } as RequestInit & { duplex: "half" });
 
   return new Response(upstream.body, {

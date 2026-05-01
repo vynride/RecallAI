@@ -40,7 +40,7 @@ class Settings(BaseSettings):
     gemini_key_pepper: str = "dev-pepper-change-me"
 
     # gemini
-    default_model: str = "gemini-2.5-flash"
+    default_model: str = "gemini-3-flash-preview"
 
 
 @lru_cache
@@ -53,8 +53,7 @@ SETTINGS.upload_dir.mkdir(parents=True, exist_ok=True)
 SETTINGS.result_dir.mkdir(parents=True, exist_ok=True)
 
 GEMINI_MODELS = [
-    "gemini-2.5-pro",
-    "gemini-2.5-flash",
-    "gemini-2.5-flash-lite",
-    "gemini-2.0-flash",
+    "gemini-3.1-pro-preview",
+    "gemini-3-flash-preview",
+    "gemini-3.1-flash-lite-preview",
 ]

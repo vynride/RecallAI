@@ -14,7 +14,6 @@ export function Footer() {
           <ul className="mt-4 space-y-2 text-sm text-on-dark/85">
             <li><a href="#how">Features</a></li>
             <li><a href="#pdfs">Preview</a></li>
-            <li><a href="#privacy">Privacy</a></li>
           </ul>
         </div>
         <div>
@@ -26,9 +25,13 @@ export function Footer() {
         </div>
       </div>
       <div className="border-t border-on-dark/10">
-        <div className="mx-auto max-w-7xl px-6 lg:px-10 py-5 flex flex-col sm:flex-row items-center justify-between text-xs text-on-dark/55 font-mono">
+        <div className="mx-auto max-w-7xl px-6 lg:px-10 py-5 flex flex-col sm:flex-row items-center justify-between gap-3 text-xs text-on-dark/55 font-mono">
           <span>© RecallAI</span>
-          <span>Made with too much coffee ☕</span>
+          <div className="flex items-center gap-5">
+            <a href="/privacy" className="hover:text-on-dark/80 transition-colors">Privacy Policy</a>
+            <a href="/terms" className="hover:text-on-dark/80 transition-colors">Terms of Use</a>
+            <span>Made with too much coffee ☕</span>
+          </div>
         </div>
       </div>
     </footer>
