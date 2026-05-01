@@ -6,7 +6,7 @@ const STEPS = [
   {
     n: "01",
     title: "Upload",
-    body: "Drop your past papers — one file or the entire exam archive you've been hoarding since freshman year. Up to 50MB, no drama.",
+    body: "Drop your past papers. One file or the entire exam archive you've been hoarding since freshman year. Up to 50MB, no drama.",
     numColor: "text-coral",
     borderColor: "border-coral/40",
     pillBg: "bg-coral/15",

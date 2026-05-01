@@ -9,7 +9,7 @@ import { track } from "@/lib/umami";
 
 const HEADLINE = "Question papers, decoded.";
 
-// Segments must concatenate to exactly SAMPLE — verified by the SAMPLE const below
+// Segments must concatenate to exactly SAMPLE, verified by the SAMPLE const below
 const SEGMENTS = [
   { text: "### ", cls: "text-coral" },
   { text: "Sorting Algorithms", cls: "text-on-dark font-semibold" },
@@ -25,7 +25,7 @@ const SEGMENTS = [
   { text: "*", cls: "text-pale-green" },
   { text: "\n  ", cls: "" },
   { text: "**Source: ", cls: "text-on-dark/50" },
-  { text: "DSA-2023.pdf — Q4(b)", cls: "text-coral-soft" },
+  { text: "DSA-2023.pdf / Q4(b)", cls: "text-coral-soft" },
   { text: "**", cls: "text-on-dark/50" },
 ] as const;
 

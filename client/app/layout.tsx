@@ -18,7 +18,7 @@ const jetbrainsMono = JetBrains_Mono({
 });
 
 export const metadata: Metadata = {
-  title: "RecallAI — Question papers, decoded.",
+  title: "RecallAI | Question papers, decoded.",
   description:
     "Upload past question papers, get a topic-sorted, difficulty-ranked PDF you can study from. Bring Your Own Gemini Key.",
 };
