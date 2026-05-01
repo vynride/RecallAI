@@ -4,7 +4,7 @@ import { Nav } from "@/components/landing/Nav";
 import { Footer } from "@/components/landing/Footer";
 
 export const metadata: Metadata = {
-  title: "Terms of Use | RecallAI",
+  title: "Terms of Use",
 };
 
 export default async function TermsPage() {

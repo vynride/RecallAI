@@ -110,13 +110,22 @@ server {
     ssl_protocols       TLSv1.2 TLSv1.3;
     ssl_ciphers         HIGH:!aNULL:!MD5;
 
-    # NextAuth — must be before /api/ (longest prefix wins)
+    # Next.js routes — must be before /api/ (longest prefix wins)
     location /api/auth/ {
         proxy_pass         http://127.0.0.1:3000;
         proxy_set_header   Host $host;
         proxy_set_header   X-Real-IP $remote_addr;
         proxy_set_header   X-Forwarded-For $proxy_add_x_forwarded_for;
         proxy_set_header   X-Forwarded-Proto $scheme;
+    }
+
+    location /api/proxy/ {
+        proxy_pass         http://127.0.0.1:3000;
+        proxy_set_header   Host $host;
+        proxy_set_header   X-Real-IP $remote_addr;
+        proxy_set_header   X-Forwarded-For $proxy_add_x_forwarded_for;
+        proxy_set_header   X-Forwarded-Proto $scheme;
+        client_max_body_size 50m;
     }
 
     # FastAPI backend
@@ -277,5 +286,5 @@ docker compose -f docker-compose.yml -f docker-compose.prod.yml exec postgres \
 - **`NEXT_PUBLIC_*` are build-time vars** — changing them requires `--build frontend`, not just a restart
 - **`GEMINI_KEY_PEPPER` is permanent** — rotating it invalidates all stored user keys
 - **`RECALLAI_DATA_DIR` must be on a Linux-native FS** — NTFS/FUSE breaks Postgres/Redis init
-- **nginx must place `/api/auth/` before `/api/`** — nginx uses longest-prefix matching; swapping the order routes NextAuth callbacks to FastAPI (returns 404)
+- **`/api/auth/` and `/api/proxy/` must come before `/api/`** — nginx uses longest-prefix matching; both are Next.js route handlers that must hit the frontend, not FastAPI
 - **Umami subpath doesn't work with the pre-built Docker image** — `BASE_PATH` is a Next.js build-time config; only `script.js` and `api/send` are proxied, the dashboard is SSH-tunnel only
