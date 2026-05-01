@@ -1,0 +1,200 @@
+/*
+ * RecallAI PDF stylesheet — WeasyPrint
+ * Mirrors the Cohere design tokens (see client/DESIGN.md).
+ * Color classes (.tag.easy/.moderate/.challenging) are emitted by
+ * services/markdown_to_pdf.py from the model's `*Tags:* …` line.
+ */
+
+@page {
+  margin: 2cm 2.2cm 2.4cm 2.2cm;
+  background: #ffffff;
+  @bottom-right {
+    content: counter(page) " / " counter(pages);
+    font-family: "JetBrains Mono", monospace;
+    font-size: 9pt;
+    color: #93939f;
+  }
+  @bottom-left {
+    content: "RecallAI";
+    font-family: "JetBrains Mono", monospace;
+    font-size: 9pt;
+    color: #93939f;
+    letter-spacing: 0.06em;
+  }
+}
+
+* { box-sizing: border-box; }
+
+body {
+  font-family: "Inter", "Helvetica Neue", Arial, sans-serif;
+  font-size: 10.5pt;
+  line-height: 1.55;
+  color: #17171c;
+}
+
+header.cover {
+  page-break-after: always;
+  padding-top: 4cm;
+}
+header.cover .brand {
+  font-family: "JetBrains Mono", monospace;
+  font-size: 11pt;
+  letter-spacing: 0.18em;
+  color: #003c33;
+  text-transform: uppercase;
+}
+header.cover .cover-title {
+  margin-top: 0.8cm;
+  font-size: 38pt;
+  font-weight: 500;
+  line-height: 1.05;
+  letter-spacing: -0.02em;
+  color: #17171c;
+  border-bottom: 4px solid #ff7759;
+  padding-bottom: 0.6cm;
+  max-width: 14cm;
+}
+
+h1 {
+  font-size: 22pt;
+  font-weight: 500;
+  margin: 1.2em 0 0.4em;
+  color: #17171c;
+  letter-spacing: -0.01em;
+}
+
+h2 {
+  font-size: 13pt;
+  font-weight: 500;
+  margin: 1.4em 0 0.6em;
+  padding-left: 14px;
+  position: relative;
+  color: #17171c;
+}
+h2::before {
+  content: "";
+  position: absolute;
+  left: 0; top: 4px; bottom: 4px;
+  width: 4px;
+  background: #ff7759;
+  border-radius: 2px;
+}
+
+h3 {
+  font-size: 14pt;
+  font-weight: 500;
+  margin: 1.4em 0 0.5em;
+  color: #003c33;
+  padding-bottom: 4px;
+  border-bottom: 1px solid #d9d9dd;
+}
+
+h4 {
+  font-size: 11pt;
+  font-weight: 500;
+  margin: 1.6em 0 0.6em;
+  color: #17171c;
+  font-family: "JetBrains Mono", monospace;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+}
+
+p { margin: 0 0 0.6em; }
+
+ul, ol { padding-left: 1.2em; margin: 0.4em 0 0.8em; }
+li { margin-bottom: 0.35em; }
+
+ul > li { list-style: none; position: relative; padding-left: 0; }
+ul > li::before {
+  content: "Q";
+  position: absolute;
+  left: -1.2em;
+  top: 0;
+  width: 1em;
+  font-family: "JetBrains Mono", monospace;
+  font-size: 9pt;
+  font-weight: 600;
+  color: #ff7759;
+}
+
+strong { color: #17171c; font-weight: 600; }
+em { color: #616161; font-style: normal; }
+
+a { color: #1863dc; text-decoration: none; }
+
+blockquote {
+  border-left: 4px solid #ff7759;
+  background: #fff7f3;
+  margin: 0.8em 0;
+  padding: 0.6em 1em;
+  border-radius: 0 6px 6px 0;
+  color: #17171c;
+}
+
+pre {
+  background: #1e1e2e;
+  color: #cdd6f4;
+  padding: 14px 16px;
+  border-radius: 8px;
+  font-family: "JetBrains Mono", monospace;
+  font-size: 9pt;
+  line-height: 1.5;
+  overflow-x: auto;
+  margin: 0.8em 0;
+}
+code {
+  background: #f1f1f3;
+  color: #17171c;
+  padding: 1px 5px;
+  border-radius: 3px;
+  font-family: "JetBrains Mono", monospace;
+  font-size: 9pt;
+}
+pre code { background: none; color: inherit; padding: 0; }
+
+table {
+  width: 100%;
+  border-collapse: collapse;
+  margin: 0.8em 0 1.2em;
+  font-size: 10pt;
+}
+th {
+  background: #003c33;
+  color: #ffffff;
+  text-align: left;
+  padding: 8px 12px;
+  font-weight: 500;
+  letter-spacing: 0.02em;
+}
+td {
+  padding: 7px 12px;
+  border-bottom: 1px solid #e5e7eb;
+  color: #212121;
+}
+tr:nth-child(even) td { background: #fafaf8; }
+
+hr {
+  border: none;
+  border-top: 1px solid #d9d9dd;
+  margin: 1.4em 0;
+}
+
+/* Difficulty + question-type pills (injected from `*Tags:*` line) */
+.tag {
+  display: inline-block;
+  font-family: "JetBrains Mono", monospace;
+  font-size: 8.5pt;
+  letter-spacing: 0.04em;
+  padding: 2px 9px;
+  border-radius: 999px;
+  margin-right: 6px;
+  vertical-align: middle;
+  border: 1px solid transparent;
+}
+.tag.easy        { background: #edfce9; color: #1f5132; border-color: #cde9c5; }
+.tag.moderate    { background: #fff4e0; color: #7a4a00; border-color: #f3deb1; }
+.tag.challenging { background: #fde7e7; color: #8a1c1c; border-color: #f3c5c5; }
+.tag.type        { background: #f1f5ff; color: #1b3a8a; border-color: #d6e0fb; }
+
+/* Source line */
+strong:has(+ *), p > strong { color: #75758a; }

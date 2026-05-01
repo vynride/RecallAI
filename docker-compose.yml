@@ -1,0 +1,153 @@
+# Local development compose. The prod override (docker-compose.prod.yml)
+# adds nginx + tighter resource caps + cert volumes.
+
+services:
+  postgres:
+    image: postgres:16
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: ${POSTGRES_USER:-recallai}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-recallai}
+      POSTGRES_DB: ${POSTGRES_DB:-recallai}
+    volumes:
+      - pg_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER:-recallai}"]
+      interval: 5s
+      timeout: 3s
+      retries: 10
+
+  redis:
+    image: redis:7-alpine
+    restart: unless-stopped
+    command: ["redis-server", "--appendonly", "yes"]
+    volumes:
+      - redis_data:/data
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 5s
+      timeout: 3s
+      retries: 10
+
+  backend:
+    build: ./backend
+    restart: unless-stopped
+    env_file: .env
+    environment:
+      DATABASE_URL: postgresql+asyncpg://${POSTGRES_USER:-recallai}:${POSTGRES_PASSWORD:-recallai}@postgres:5432/${POSTGRES_DB:-recallai}
+      REDIS_URL: redis://redis:6379/0
+      CELERY_BROKER_URL: redis://redis:6379/0
+      CELERY_RESULT_BACKEND: redis://redis:6379/1
+    volumes:
+      - recallai_uploads:/var/recallai/uploads
+      - recallai_results:/var/recallai/results
+    ports:
+      - "8000:8000"
+    depends_on:
+      postgres: { condition: service_healthy }
+      redis: { condition: service_healthy }
+    command: ["sh", "-c", "alembic upgrade head && uvicorn app.main:app --host 0.0.0.0 --port 8000 --workers 2"]
+
+  worker:
+    build: ./backend
+    restart: unless-stopped
+    env_file: .env
+    environment:
+      DATABASE_URL: postgresql+asyncpg://${POSTGRES_USER:-recallai}:${POSTGRES_PASSWORD:-recallai}@postgres:5432/${POSTGRES_DB:-recallai}
+      REDIS_URL: redis://redis:6379/0
+      CELERY_BROKER_URL: redis://redis:6379/0
+      CELERY_RESULT_BACKEND: redis://redis:6379/1
+    volumes:
+      - recallai_uploads:/var/recallai/uploads
+      - recallai_results:/var/recallai/results
+    depends_on:
+      backend: { condition: service_started }
+      redis: { condition: service_healthy }
+    command: ["celery", "-A", "app.workers.celery_app", "worker", "-Q", "pipeline", "-c", "${CELERY_CONCURRENCY:-4}", "--loglevel=info"]
+
+  beat:
+    build: ./backend
+    restart: unless-stopped
+    env_file: .env
+    environment:
+      DATABASE_URL: postgresql+asyncpg://${POSTGRES_USER:-recallai}:${POSTGRES_PASSWORD:-recallai}@postgres:5432/${POSTGRES_DB:-recallai}
+      REDIS_URL: redis://redis:6379/0
+      CELERY_BROKER_URL: redis://redis:6379/0
+      CELERY_RESULT_BACKEND: redis://redis:6379/1
+    depends_on:
+      redis: { condition: service_healthy }
+    command: ["celery", "-A", "app.workers.celery_app", "beat", "--loglevel=info"]
+
+  frontend:
+    build: ./client
+    restart: unless-stopped
+    env_file: .env
+    environment:
+      BACKEND_URL: http://backend:8000
+      NODE_ENV: production
+    ports:
+      - "3000:3000"
+    depends_on:
+      backend: { condition: service_started }
+
+  umami-db:
+    image: postgres:16
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: ${UMAMI_DB_USER:-umami}
+      POSTGRES_PASSWORD: ${UMAMI_DB_PASSWORD:-umami}
+      POSTGRES_DB: ${UMAMI_DB_NAME:-umami}
+    volumes:
+      - umami_pg_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${UMAMI_DB_USER:-umami}"]
+      interval: 5s
+      timeout: 3s
+      retries: 10
+
+  umami:
+    image: ghcr.io/umami-software/umami:postgresql-latest
+    restart: unless-stopped
+    environment:
+      DATABASE_URL: postgresql://${UMAMI_DB_USER:-umami}:${UMAMI_DB_PASSWORD:-umami}@umami-db:5432/${UMAMI_DB_NAME:-umami}
+      DATABASE_TYPE: postgresql
+      APP_SECRET: ${UMAMI_APP_SECRET:-change-me}
+    ports:
+      - "3001:3000"
+    depends_on:
+      umami-db: { condition: service_healthy }
+
+# Volumes are bind-mounted onto a Linux-native FS path (RECALLAI_DATA_DIR) because
+# the project lives on an NTFS/FUSE mount that doesn't honor POSIX chmod, which
+# breaks Postgres/Redis init.
+volumes:
+  pg_data:
+    driver: local
+    driver_opts:
+      type: none
+      o: bind
+      device: ${RECALLAI_DATA_DIR}/pg_data
+  redis_data:
+    driver: local
+    driver_opts:
+      type: none
+      o: bind
+      device: ${RECALLAI_DATA_DIR}/redis_data
+  recallai_uploads:
+    driver: local
+    driver_opts:
+      type: none
+      o: bind
+      device: ${RECALLAI_DATA_DIR}/recallai_uploads
+  recallai_results:
+    driver: local
+    driver_opts:
+      type: none
+      o: bind
+      device: ${RECALLAI_DATA_DIR}/recallai_results
+  umami_pg_data:
+    driver: local
+    driver_opts:
+      type: none
+      o: bind
+      device: ${RECALLAI_DATA_DIR}/umami_pg_data

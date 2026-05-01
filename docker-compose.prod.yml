@@ -1,0 +1,59 @@
+# Production overlay: adds nginx, certbot volumes, resource caps.
+# Usage: docker compose -f docker-compose.yml -f docker-compose.prod.yml up -d
+
+services:
+  nginx:
+    image: nginx:1.27-alpine
+    restart: unless-stopped
+    ports:
+      - "80:80"
+      - "443:443"
+    volumes:
+      - ./infra/nginx/nginx.conf:/etc/nginx/nginx.conf:ro
+      - ./infra/nginx/conf.d:/etc/nginx/conf.d:ro
+      - nginx_certs:/etc/letsencrypt
+      - nginx_certs_www:/var/www/certbot
+    depends_on:
+      - frontend
+      - backend
+      - umami
+
+  backend:
+    deploy:
+      resources:
+        limits:
+          memory: 1G
+
+  worker:
+    deploy:
+      resources:
+        limits:
+          memory: 2G
+
+  frontend:
+    deploy:
+      resources:
+        limits:
+          memory: 512M
+
+  postgres:
+    deploy:
+      resources:
+        limits:
+          memory: 1G
+
+  redis:
+    deploy:
+      resources:
+        limits:
+          memory: 256M
+
+  umami:
+    deploy:
+      resources:
+        limits:
+          memory: 512M
+
+volumes:
+  nginx_certs: {}
+  nginx_certs_www: {}
