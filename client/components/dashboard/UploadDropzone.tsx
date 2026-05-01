@@ -54,7 +54,7 @@ export function UploadDropzone({ models, defaultModel, hasSavedKey }: Props) {
   }
 
   const onDrop = useCallback((accepted: File[]) => {
-    setFiles((prev) => [...prev, ...accepted].slice(0, 10));
+    setFiles((prev) => [...prev, ...accepted]);
   }, []);
 
   const { getRootProps, getInputProps, isDragActive } = useDropzone({
@@ -182,7 +182,7 @@ export function UploadDropzone({ models, defaultModel, hasSavedKey }: Props) {
         <p className="mt-3 text-sm font-medium text-ink">
           {isDragActive ? "Drop your PDFs here" : "Drag PDFs here, or click to browse"}
         </p>
-        <p className="mt-1 text-xs text-muted">Up to 10 files, 50MB total</p>
+        <p className="mt-1 text-xs text-muted">50MB total per upload</p>
       </div>
 
       {/* File list */}
