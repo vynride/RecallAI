@@ -81,9 +81,8 @@ html, body {
 }
 
 @keyframes shimmer {
-  0%   { transform: translateX(-100%); }
-  50%  { transform: translateX(250%); }
-  100% { transform: translateX(250%); }
+  0%   { transform: translateX(-150%); }
+  100% { transform: translateX(450%); }
 }
 
 @keyframes orb1 {

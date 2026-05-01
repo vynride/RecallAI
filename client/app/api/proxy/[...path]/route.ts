@@ -44,12 +44,15 @@ async function handle(req: Request, ctx: RouteContext<"/api/proxy/[...path]">) {
   headers.delete("host");
   headers.delete("cookie");
 
+  // SSE streams must not have a timeout — jobs can run for several minutes.
+  const isStream = path[path.length - 1] === "stream";
+
   const upstream = await fetch(target, {
     method: req.method,
     headers,
     body: ["GET", "HEAD"].includes(req.method) ? undefined : req.body,
     duplex: "half",
-    signal: AbortSignal.timeout(20_000),
+    ...(isStream ? {} : { signal: AbortSignal.timeout(20_000) }),
   } as RequestInit & { duplex: "half" });
 
   return new Response(upstream.body, {

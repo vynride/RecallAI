@@ -37,6 +37,7 @@ export function useEventStream(url: string | null) {
     );
     source.onerror = () => {
       setError("connection lost");
+      setDone(true); // trigger polling fallback in case the job finished
       source.close();
     };
 

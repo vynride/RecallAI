@@ -1,7 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { Check, Clock, Copy, ExternalLink } from "lucide-react";
 
 import { api, type Job } from "@/lib/api";
@@ -78,6 +78,21 @@ export function JobView({ jobId }: { jobId: string }) {
   const resultRef = useRef<HTMLDivElement>(null);
   const scrolledRef = useRef(false);
 
+  // Derive current status directly from SSE events for instant stepper updates,
+  // falling back to the DB-fetched job status.
+  const displayStatus = useMemo<Job["status"]>(() => {
+    for (let i = events.length - 1; i >= 0; i--) {
+      const e = events[i];
+      if (e.event === "complete") return "done";
+      if (e.event === "error") return "error";
+      if (e.event === "progress" && typeof e.data.step === "string")
+        return e.data.step as Job["status"];
+      if (e.event === "snapshot" && typeof e.data.status === "string")
+        return e.data.status as Job["status"];
+    }
+    return job?.status ?? "queued";
+  }, [events, job?.status]);
+
   useEffect(() => {
     api.jobs.get(jobId).then(setJob).catch(() => setJob(null));
   }, [jobId]);
@@ -120,17 +135,17 @@ export function JobView({ jobId }: { jobId: string }) {
     );
   }
 
-  const isRunning = !["done", "error"].includes(job.status);
+  const isRunning = !["done", "error"].includes(displayStatus);
 
   const headingText =
-    job.status === "done"  ? "Task Complete"
-    : job.status === "error" ? "Task Failed"
+    displayStatus === "done"  ? "Task Complete"
+    : displayStatus === "error" ? "Task Failed"
     : "Processing Task";
 
   const headerTheme =
-    job.status === "done"
+    displayStatus === "done"
       ? { bg: "bg-pale-green", border: "border-deep-green/20", stripe: "bg-deep-green/25" }
-      : job.status === "error"
+      : displayStatus === "error"
       ? { bg: "bg-error/5", border: "border-error/20", stripe: "bg-error/25" }
       : { bg: "bg-pale-blue", border: "border-action-blue/15", stripe: "bg-action-blue/25" };
 
@@ -185,7 +200,7 @@ export function JobView({ jobId }: { jobId: string }) {
       </div>
 
       {/* Progress stepper */}
-      <ProgressStepper status={job.status} />
+      <ProgressStepper status={displayStatus} />
 
       {/* Error panel */}
       {job.error_message && (
@@ -241,7 +256,7 @@ export function JobView({ jobId }: { jobId: string }) {
           <div className="relative h-0.5 bg-action-blue/10 overflow-hidden">
             <div
               className="absolute inset-y-0 left-0 bg-coral/60"
-              style={{ width: "30%", animation: "shimmer 3s ease-in-out infinite" }}
+              style={{ width: "30%", animation: "shimmer 2.5s linear infinite" }}
             />
           </div>
         </div>
