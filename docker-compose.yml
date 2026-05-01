@@ -40,8 +40,6 @@ services:
     volumes:
       - recallai_uploads:/var/recallai/uploads
       - recallai_results:/var/recallai/results
-    ports:
-      - "8000:8000"
     depends_on:
       postgres: { condition: service_healthy }
       redis: { condition: service_healthy }
@@ -84,8 +82,6 @@ services:
     environment:
       BACKEND_URL: http://backend:8000
       NODE_ENV: production
-    ports:
-      - "3000:3000"
     depends_on:
       backend: { condition: service_started }
 
@@ -111,8 +107,6 @@ services:
       DATABASE_URL: postgresql://${UMAMI_DB_USER:-umami}:${UMAMI_DB_PASSWORD:-umami}@umami-db:5432/${UMAMI_DB_NAME:-umami}
       DATABASE_TYPE: postgresql
       APP_SECRET: ${UMAMI_APP_SECRET:-change-me}
-    ports:
-      - "3001:3000"
     depends_on:
       umami-db: { condition: service_healthy }
 
