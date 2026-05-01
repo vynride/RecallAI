@@ -44,14 +44,22 @@ The output MUST be clean, structured Markdown, suitable for direct PDF export. I
         *   `Application-Based`: Scenario-driven, real-world problem application, case study analysis.
 
 5.  **Generate a Model Answer for Every Question:**
-    *   Immediately after the `**Source:...**` line, add a model answer on a new line:
-        `**Model Answer:** [answer]`
+    *   Immediately after the `**Source:...**` line, add a blank line, then the label `**Model Answer:**` on its own line, then a blank line, then the answer body. Like this:
+
+        ```
+        **Source: Paper.pdf – Q1**
+
+        **Model Answer:**
+
+        [answer body here]
+        ```
+
     *   The answer MUST be calibrated to the **DifficultyLevel** and how an examiner would expect it to be written:
-        *   **Easy**: Concise and direct (2–4 sentences). State the definition, fact, or single-step solution clearly. No unnecessary elaboration.
-        *   **Moderate**: Structured response (4–8 sentences or a short numbered list). Show the reasoning steps, apply the relevant concept or formula, and state the result with brief justification.
-        *   **Challenging**: Full examiner-level answer. Use clearly structured paragraphs or numbered points. Address every part of the question, show working where applicable, justify decisions, and synthesise across concepts. Depth and precision are expected.
-    *   If the question has sub-parts, address each sub-part explicitly in the model answer (e.g., **(a)** …, **(b)** …).
-    *   For **Numerical** questions, show the key formula, substitution, and final result with units.
+        *   **Easy**: Concise and direct (2–4 sentences as a plain paragraph). State the definition, fact, or single-step solution clearly. No unnecessary elaboration.
+        *   **Moderate**: Structured response. Use a short numbered list or 2–3 clear paragraphs separated by blank lines. Show the reasoning steps, apply the relevant concept or formula, and state the result with brief justification.
+        *   **Challenging**: Full examiner-level answer. Use numbered points or clearly separated paragraphs (blank line between each). Address every part of the question, show working where applicable, justify decisions, and synthesise across concepts. Depth and precision are expected.
+    *   If the question has sub-parts, address each sub-part as a separate numbered point or paragraph with a blank line between them.
+    *   For **Numerical** questions, show the key formula, substitution, and final result with units — each on its own line.
     *   For **Conceptual** questions, define terms precisely and explain the underlying principle.
     *   For **Application-Based** questions, relate the answer to the scenario given.
     *   Do NOT write "This is a model answer" or any meta-commentary. Write the answer directly as a knowledgeable student or examiner would.
@@ -69,7 +77,10 @@ The output MUST be clean, structured Markdown, suitable for direct PDF export. I
 
         *Tags: [DifficultyLevel], [QuestionType]*
         **Source: [PaperName].pdf – Q[QuestionNumber]**
-        **Model Answer:** [Answer calibrated to difficulty and question type]
+
+        **Model Answer:**
+
+        [Answer calibrated to difficulty and question type]
 
 
         - Q: [Next question text...]
@@ -96,7 +107,12 @@ The output MUST be clean, structured Markdown, suitable for direct PDF export. I
 
         *Tags: Moderate, Application-Based*
         **Source: Statistics2022.pdf – Q3**
-        **Model Answer:** The chart shows a steady upward trend from 2010 to 2018, followed by a sharp decline in 2019–2020. The initial growth can be attributed to increased urbanisation and consumer spending. The subsequent drop aligns with global economic disruptions and reduced demand, indicating sensitivity to macroeconomic conditions.
+
+        **Model Answer:**
+
+        The chart shows a steady upward trend from 2010 to 2018, followed by a sharp decline in 2019–2020.
+
+        The initial growth can be attributed to increased urbanisation and consumer spending. The subsequent drop aligns with global economic disruptions and reduced demand, indicating sensitivity to macroeconomic conditions.
 
         ```
 
@@ -118,7 +134,10 @@ The output MUST be clean, structured Markdown, suitable for direct PDF export. I
 
         *Tags: Easy, Conceptual*
         **Source: ProgrammingBasics2020.pdf – Q2(b)**
-        **Model Answer:** The output is `5` followed by `6`. The expression `x++` is post-increment: the current value of `x` (5) is printed first, then `x` is incremented to 6. The second `printf` then prints the updated value 6.
+
+        **Model Answer:**
+
+        The output is `5` followed by `6`. The expression `x++` is post-increment: the current value of `x` (5) is printed first, then `x` is incremented to 6. The second `printf` then prints the updated value 6.
 
         ```
 
