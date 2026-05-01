@@ -4,6 +4,7 @@ import Link from "next/link";
 import { motion } from "framer-motion";
 
 import { Button } from "@/components/ui/Button";
+import { LogoMark } from "@/components/ui/LogoMark";
 
 const NAV_LINKS = [
   { href: "#how", label: "Features" },
@@ -16,7 +17,7 @@ export function Nav({ signedIn }: { signedIn: boolean }) {
     <header className="sticky top-0 z-30 backdrop-blur-md bg-canvas/90 border-b border-hairline">
       <nav className="mx-auto max-w-7xl flex items-center justify-between px-6 lg:px-10 h-16">
         <Link href="/" className="flex items-center gap-2">
-          <span className="w-2 h-2 rounded-full bg-coral" />
+          <LogoMark size={26} />
           <span className="font-mono text-sm tracking-[0.18em] uppercase text-primary">RecallAI</span>
         </Link>
 

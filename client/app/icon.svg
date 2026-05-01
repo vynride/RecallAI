@@ -1,0 +1,11 @@
+<svg viewBox="0 0 48 48" fill="none" xmlns="http://www.w3.org/2000/svg">
+  <!-- Coral rounded-square background -->
+  <rect width="48" height="48" rx="11" fill="#ff7759"/>
+  <!-- 270° clockwise arc: top → right → bottom → left (the "recall loop") -->
+  <path d="M24 12 A12 12 0 1 1 12 24"
+        stroke="white" stroke-width="3" stroke-linecap="round" fill="none"/>
+  <!-- Filled arrowhead at endpoint pointing downward (direction of motion) -->
+  <polygon points="8,21 12,27 16,21" fill="white"/>
+  <!-- Center dot — the AI core -->
+  <circle cx="24" cy="24" r="3.5" fill="white"/>
+</svg>

@@ -4,6 +4,7 @@ import { redirect } from "next/navigation";
 import { auth, signOut } from "@/lib/auth";
 import { NavLinks } from "@/components/dashboard/NavLinks";
 import { DashboardBackground } from "@/components/dashboard/DashboardBackground";
+import { LogoMark } from "@/components/ui/LogoMark";
 
 export default async function DashboardLayout({
   children,
@@ -32,7 +33,7 @@ export default async function DashboardLayout({
           {/* Left: brand + nav */}
           <div className="flex items-center gap-6">
             <Link href="/" className="flex items-center gap-2 shrink-0">
-              <span className="w-2 h-2 rounded-full bg-coral" />
+              <LogoMark size={24} />
               <span className="font-mono text-sm tracking-[0.18em] uppercase text-primary">RecallAI</span>
             </Link>
             {/* Thin separator */}
