@@ -97,34 +97,30 @@ export function JobView({ jobId }: { jobId: string }) {
     api.jobs.get(jobId).then(setJob).catch(() => setJob(null));
   }, [jobId]);
 
+  // Fast refresh on each SSE event for live progress stepper updates
   useEffect(() => {
     if (events.length === 0) return;
     api.jobs.get(jobId).then(setJob).catch(() => {});
   }, [events.length, jobId]);
 
+  // Continuous polling until the PDF is ready — covers SSE failures and slow PDF generation
   useEffect(() => {
-    if (!done) return;
-    let attempts = 0;
-    const poll = () => {
-      api.jobs.get(jobId).then((j) => {
-        setJob(j);
-        if (!j.has_pdf && j.status !== "error" && attempts < 8) {
-          attempts++;
-          setTimeout(poll, 1500);
-        }
-      }).catch(() => {});
-    };
-    poll();
-  }, [done, jobId]);
+    if (job?.has_pdf || job?.status === "error") return;
+    const id = setInterval(() => {
+      api.jobs.get(jobId).then(setJob).catch(() => {});
+    }, 3000);
+    return () => clearInterval(id);
+  }, [jobId, job?.has_pdf, job?.status]);
 
-  // Auto-scroll to results the first time has_pdf becomes true
+  // Auto-scroll to results the first time the result section becomes visible
+  const resultIsVisible = job?.has_pdf || displayStatus === "done";
   useEffect(() => {
-    if (!job?.has_pdf || scrolledRef.current) return;
+    if (!resultIsVisible || scrolledRef.current) return;
     scrolledRef.current = true;
     setTimeout(() => {
       resultRef.current?.scrollIntoView({ behavior: "smooth", block: "start" });
     }, 400);
-  }, [job?.has_pdf]);
+  }, [resultIsVisible]);
 
   if (!job) {
     return (
@@ -263,7 +259,7 @@ export function JobView({ jobId }: { jobId: string }) {
       )}
 
       {/* Result viewer */}
-      {job.has_pdf && (
+      {resultIsVisible && (
         <div ref={resultRef}>
           <ResultTabs job={job} />
         </div>

@@ -135,7 +135,7 @@ def _build_cover(title: str) -> str:
         '<div class="cover-star">'
         f'{_STAR_SVG}&nbsp;'
         '<a href="https://github.com/vynride/RecallAI/" class="cover-star-link">'
-        'Drop a Star &mdash; github.com/vynride/RecallAI'
+        'Like it? Drop a Star - github.com/vynride/RecallAI'
         '</a>'
         '</div>'
 
