@@ -32,27 +32,100 @@ body {
   color: #17171c;
 }
 
+/* ── Cover page ─────────────────────────────────────────────────────────── */
 header.cover {
   page-break-after: always;
-  padding-top: 4cm;
+  padding-top: 3cm;
 }
-header.cover .brand {
+
+.cover-brand-table {
+  border-collapse: collapse;
+  margin-bottom: 1.6cm;
+}
+.cover-logo-cell {
+  vertical-align: middle;
+  padding-right: 14pt;
+}
+.cover-brand-cell {
+  vertical-align: middle;
+}
+.cover-brand-name {
   font-family: "JetBrains Mono", monospace;
-  font-size: 11pt;
+  font-size: 15pt;
+  font-weight: 700;
   letter-spacing: 0.18em;
   color: #003c33;
   text-transform: uppercase;
+  line-height: 1.1;
 }
+.cover-site-url {
+  display: block;
+  margin-top: 4pt;
+  font-family: "JetBrains Mono", monospace;
+  font-size: 9pt;
+  color: #75758a;
+  text-decoration: none;
+  letter-spacing: 0.02em;
+}
+
 header.cover .cover-title {
-  margin-top: 0.8cm;
-  font-size: 38pt;
+  font-size: 34pt;
   font-weight: 500;
   line-height: 1.05;
   letter-spacing: -0.02em;
   color: #17171c;
   border-bottom: 4px solid #ff7759;
   padding-bottom: 0.6cm;
-  max-width: 14cm;
+  margin-top: 0;
+  margin-bottom: 0;
+  max-width: 15cm;
+}
+
+.cover-attribution {
+  margin-top: 3.2cm;
+  padding-top: 1cm;
+  border-top: 1px solid #e5e7eb;
+}
+.cover-made-by {
+  font-size: 11pt;
+  color: #17171c;
+  margin: 0 0 0.8cm;
+}
+.cover-made-by strong {
+  color: #17171c;
+}
+
+.cover-links-table {
+  border-collapse: collapse;
+  margin-bottom: 0.8cm;
+}
+.cover-link-cell {
+  padding-right: 1.4cm;
+  vertical-align: middle;
+}
+.cover-link {
+  color: #003c33;
+  text-decoration: none;
+}
+.cover-icon-cell {
+  vertical-align: middle;
+  padding-right: 5pt;
+}
+.cover-link-text {
+  vertical-align: middle;
+  font-family: "JetBrains Mono", monospace;
+  font-size: 9.5pt;
+  color: #003c33;
+}
+
+.cover-star {
+  font-size: 11pt;
+  color: #17171c;
+}
+.cover-star-link {
+  color: #ff7759;
+  font-weight: 600;
+  text-decoration: none;
 }
 
 h1 {

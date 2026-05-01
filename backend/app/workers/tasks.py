@@ -93,7 +93,8 @@ async def _run(job_id_str: str, gemini_key: str) -> None:
             _emit(job_id_str, event="progress", step="rendering_pdf")
 
             pdf_bytes = await asyncio.to_thread(
-                markdown_to_pdf.markdown_to_pdf, markdown, title="RecallAI Question Bank"
+                markdown_to_pdf.markdown_to_pdf, markdown,
+                title="RecallAI: Question papers, decoded.",
             )
             result_path.write_bytes(pdf_bytes)
 
