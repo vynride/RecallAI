@@ -48,7 +48,7 @@ export const metadata: Metadata = {
     locale: "en_US",
     images: [
       {
-        url: "/opengraph-image",
+        url: `${siteUrl}/opengraph-image`,
         width: 1200,
         height: 630,
         alt: "RecallAI — Question papers, decoded.",
@@ -60,7 +60,7 @@ export const metadata: Metadata = {
     title: "RecallAI | Question papers, decoded.",
     description:
       "Upload past question papers, get a topic-sorted, difficulty-ranked PDF you can study from.",
-    images: ["/opengraph-image"],
+    images: [`${siteUrl}/opengraph-image`],
   },
   robots: { index: true, follow: true },
 };
