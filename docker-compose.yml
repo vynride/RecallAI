@@ -76,7 +76,10 @@ services:
     command: ["celery", "-A", "app.workers.celery_app", "beat", "--loglevel=info"]
 
   frontend:
-    build: ./client
+    build:
+      context: ./client
+      args:
+        NEXT_PUBLIC_SITE_URL: ${NEXT_PUBLIC_SITE_URL}
     restart: unless-stopped
     env_file: .env
     environment:
