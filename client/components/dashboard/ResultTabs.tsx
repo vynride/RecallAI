@@ -73,11 +73,9 @@ export function ResultTabs({ job }: { job: Job }) {
               </button>
             ))}
           </div>
-          <button onClick={handleDownload}>
-            <Button size="md">
-              <Download size={14} /> Download PDF
-            </Button>
-          </button>
+          <Button size="md" onClick={handleDownload}>
+            <Download size={14} /> Download PDF
+          </Button>
         </div>
       </div>
 
