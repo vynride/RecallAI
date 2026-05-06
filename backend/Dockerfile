@@ -10,6 +10,7 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
       build-essential \
       libpango-1.0-0 libpangoft2-1.0-0 libharfbuzz0b libcairo2 libgdk-pixbuf-2.0-0 \
       libffi-dev shared-mime-info fonts-inter fonts-jetbrains-mono \
+      fonts-noto-core fonts-noto-mono fonts-noto-extra \
       tesseract-ocr tesseract-ocr-eng \
       libgl1 libglib2.0-0 \
       curl \
