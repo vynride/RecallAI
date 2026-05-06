@@ -75,6 +75,16 @@ export const api = {
         body: form,
         headers: { "X-Gemini-Key": geminiKey },
       }),
+    rerun: (id: string, model: string, geminiKey: string, useSavedKey: boolean) => {
+      const form = new FormData();
+      form.append("model", model);
+      form.append("use_saved_key", String(useSavedKey));
+      return request<Job>(`/jobs/${id}/rerun`, {
+        method: "POST",
+        body: form,
+        headers: geminiKey ? { "X-Gemini-Key": geminiKey } : {},
+      });
+    },
     delete: (id: string) => request<void>(`/jobs/${id}`, { method: "DELETE" }),
     markdownUrl: (id: string) => `${API_BASE}/jobs/${id}/markdown`,
     pdfUrl: (id: string, inline = false) =>

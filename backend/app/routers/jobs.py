@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import json
+import shutil
 from uuid import UUID, uuid4
 
 from fastapi import (
@@ -183,12 +184,66 @@ async def delete_job(
     pdf = SETTINGS.result_dir / f"{job.id}.pdf"
     if pdf.exists():
         pdf.unlink()
-    import shutil
-
     shutil.rmtree(SETTINGS.upload_dir / str(job.id), ignore_errors=True)
     await session.delete(job)
     await session.commit()
     return Response(status_code=status.HTTP_204_NO_CONTENT)
+
+
+@router.post("/{job_id}/rerun", response_model=JobOut, status_code=status.HTTP_202_ACCEPTED)
+async def rerun_job(
+    job_id: UUID,
+    model: str = Form(SETTINGS.default_model),
+    use_saved_key: bool = Form(False),
+    x_gemini_key: str | None = Header(default=None),
+    user: User = Depends(current_user),
+    session: AsyncSession = Depends(db_session),
+) -> JobOut:
+    if model not in GEMINI_MODELS:
+        raise HTTPException(status.HTTP_400_BAD_REQUEST, "unknown model")
+
+    original = await session.get(Job, job_id)
+    if original is None or original.owner_id != user.id:
+        raise HTTPException(status.HTTP_404_NOT_FOUND, "job not found")
+
+    src_dir = SETTINGS.upload_dir / str(original.id)
+    if not src_dir.exists() or not any(src_dir.glob("*.pdf")):
+        raise HTTPException(status.HTTP_409_CONFLICT, "original uploads no longer available")
+
+    api_key: str | None = x_gemini_key
+    if not api_key and use_saved_key and user.encrypted_gemini_key:
+        api_key = key_crypto.decrypt(user.encrypted_gemini_key, user.subject)
+    if not api_key:
+        raise HTTPException(status.HTTP_400_BAD_REQUEST, "missing Gemini API key")
+
+    if not tasks.reserve_slot(str(user.id)):
+        raise HTTPException(
+            status.HTTP_429_TOO_MANY_REQUESTS,
+            f"max {SETTINGS.rate_limit_concurrent_jobs} concurrent jobs per user",
+        )
+
+    new_job = Job(
+        id=uuid4(),
+        owner_id=user.id,
+        status=JobStatus.queued,
+        model=model,
+        options=original.options or {},
+        file_count=original.file_count,
+    )
+    session.add(new_job)
+
+    dst_dir = SETTINGS.upload_dir / str(new_job.id)
+    try:
+        shutil.copytree(src_dir, dst_dir)
+    except Exception:
+        tasks.release_slot(str(user.id))
+        raise
+
+    await session.commit()
+    await session.refresh(new_job)
+
+    tasks.run_pipeline.delay(str(new_job.id), api_key)
+    return _to_out(new_job)
 
 
 @router.get("/{job_id}/stream")

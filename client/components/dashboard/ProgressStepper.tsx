@@ -14,13 +14,7 @@ const LABEL: Record<JobStatus, string> = {
 };
 
 export function ProgressStepper({ status }: { status: JobStatus }) {
-  if (status === "error") {
-    return (
-      <div className="rounded-md bg-error/10 text-error border border-error/20 px-4 py-3 text-sm font-mono">
-        Pipeline failed. See message below.
-      </div>
-    );
-  }
+  if (status === "error") return null;
   const currentIdx = ORDER.indexOf(status);
   return (
     <ol className="flex items-center gap-3 text-xs font-mono uppercase tracking-wider">

@@ -1,14 +1,81 @@
 "use client";
 
 import Link from "next/link";
+import { useRouter } from "next/navigation";
 import { useEffect, useMemo, useRef, useState } from "react";
-import { Check, Clock, Copy, ExternalLink } from "lucide-react";
+import { toast } from "sonner";
+import { AlertTriangle, Check, Clock, Copy, ExternalLink, RotateCcw } from "lucide-react";
 
 import { api, type Job } from "@/lib/api";
+import { getKey } from "@/lib/key-storage";
 import { useEventStream } from "@/lib/sse";
 import { ProgressStepper } from "@/components/dashboard/ProgressStepper";
 import { ResultTabs } from "@/components/dashboard/ResultTabs";
 import { Pill } from "@/components/ui/Pill";
+
+const FLASH_MODEL = "gemini-3-flash-preview";
+
+const MODEL_LABELS: Record<string, string> = {
+  "gemini-3.1-pro-preview": "3.1 Pro",
+  "gemini-3-flash-preview": "3 Flash",
+  "gemini-3.1-flash-lite-preview": "3.1 Flash Lite",
+};
+
+function describeError(raw: string, model: string): { body: string; isQuota: boolean } {
+  const r = raw.toLowerCase();
+
+  if (/resource_exhausted|429|quota|rate[- ]?limit/.test(r)) {
+    const label = MODEL_LABELS[model] ?? model;
+    const suggestion =
+      model === FLASH_MODEL
+        ? "Please wait a few minutes and try again, or check your Gemini API quota."
+        : "Switch to 3 Flash, recommended for most jobs and has higher rate limits.";
+    return {
+      body: `${label} is currently rate limited and can't accept new requests right now. ${suggestion}`,
+      isQuota: true,
+    };
+  }
+
+  if (/api[_ ]?key|unauthenticated|401|permission_denied|403|invalid.*credential/.test(r)) {
+    return {
+      body: "Your Gemini API key was rejected. Please update your key on the dashboard and try again.",
+      isQuota: false,
+    };
+  }
+
+  if (/timeout|timed out|deadline/.test(r)) {
+    return {
+      body: "This task took too long and was stopped. Try splitting your PDFs into smaller batches.",
+      isQuota: false,
+    };
+  }
+
+  if (/connection|econnrefused|failed to fetch|network/.test(r)) {
+    return {
+      body: "We couldn't reach Gemini. Please check your connection and try again.",
+      isQuota: false,
+    };
+  }
+
+  if (/internal_server|503|unavailable|server_error|servererror|5\d{2}/.test(r)) {
+    return {
+      body: "Gemini is having trouble right now. Please try again in a few minutes.",
+      isQuota: false,
+    };
+  }
+
+  if (/invalid_argument|400|bad request|too large|unsupported|extract|ocr/.test(r)) {
+    return {
+      body: "We couldn't process your PDFs. They may be too large, corrupted, or password protected.",
+      isQuota: false,
+    };
+  }
+
+  return {
+    body: "Something went wrong while processing this task. Please try again, or contact support if it keeps happening.",
+    isQuota: false,
+  };
+}
 
 function ElapsedTimer({ start }: { start: string }) {
   const [elapsed, setElapsed] = useState(0);
@@ -73,10 +140,35 @@ const SOCIAL_LINKS = [
 ];
 
 export function JobView({ jobId }: { jobId: string }) {
+  const router = useRouter();
   const [job, setJob] = useState<Job | null>(null);
+  const [hasSavedKey, setHasSavedKey] = useState(false);
+  const [rerunning, setRerunning] = useState(false);
   const { events, done } = useEventStream(api.jobs.streamUrl(jobId));
   const resultRef = useRef<HTMLDivElement>(null);
   const scrolledRef = useRef(false);
+
+  useEffect(() => {
+    api.me().then((me) => setHasSavedKey(me.has_saved_key)).catch(() => {});
+  }, []);
+
+  async function rerunWithFlash() {
+    const sessionKey = getKey() ?? "";
+    if (!sessionKey && !hasSavedKey) {
+      toast.error("Add your Gemini key on the dashboard, then try again.");
+      return;
+    }
+    setRerunning(true);
+    try {
+      const next = await api.jobs.rerun(jobId, FLASH_MODEL, sessionKey, hasSavedKey && !sessionKey);
+      toast.success("Re-running with 3 Flash");
+      router.push(`/dashboard/jobs/${next.id}`);
+    } catch (err) {
+      toast.error(err instanceof Error ? err.message : "Couldn't re-run job");
+    } finally {
+      setRerunning(false);
+    }
+  }
 
   // Derive current status directly from SSE events for instant stepper updates,
   // falling back to the DB-fetched job status.
@@ -199,11 +291,39 @@ export function JobView({ jobId }: { jobId: string }) {
       <ProgressStepper status={displayStatus} />
 
       {/* Error panel */}
-      {job.error_message && (
-        <div className="rounded-sm bg-error/5 border border-error/20 p-4 text-sm text-error font-mono">
-          {job.error_message}
-        </div>
-      )}
+      {job.error_message && (() => {
+        const { body, isQuota } = describeError(job.error_message, job.model);
+        const showRerun = isQuota && job.model !== FLASH_MODEL;
+        return (
+          <div className="rounded-sm bg-error/5 border border-error/20 p-5 sm:p-6">
+            <div className="flex items-start gap-3">
+              <AlertTriangle size={20} className="text-error shrink-0 mt-0.5" />
+              <div className="min-w-0 flex-1">
+                <h2 className="text-base sm:text-lg font-semibold text-error tracking-tight">
+                  Uh-oh, Pipeline Failed :(
+                </h2>
+                <p className="mt-1 text-sm text-error/85">
+                  We couldn&apos;t finish this task.
+                </p>
+                <p className="mt-3 text-sm text-ink/90 leading-relaxed break-words">
+                  {body}
+                </p>
+                {showRerun && (
+                  <button
+                    type="button"
+                    onClick={rerunWithFlash}
+                    disabled={rerunning}
+                    className="mt-4 inline-flex items-center gap-2 rounded-sm border border-error/30 bg-canvas px-3 py-2 text-sm font-medium text-error transition hover:bg-error/10 disabled:opacity-60 disabled:cursor-not-allowed"
+                  >
+                    <RotateCcw size={14} />
+                    {rerunning ? "Re-running…" : "Re-run with 3 Flash"}
+                  </button>
+                )}
+              </div>
+            </div>
+          </div>
+        );
+      })()}
 
       {/* "While you wait" engagement band */}
       {isRunning && (
