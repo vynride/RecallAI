@@ -6,6 +6,8 @@ import shutil
 from datetime import datetime, timedelta, timezone
 from uuid import UUID
 
+from google.api_core import exceptions as google_exc
+from google.genai import errors as genai_errors
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import async_sessionmaker, create_async_engine
 from sqlalchemy.pool import NullPool
@@ -14,6 +16,26 @@ from app.config import SETTINGS
 from app.models import Job, JobStatus
 from app.services import ai_pipeline, markdown_to_pdf, pdf_extractor, progress
 from app.workers.celery_app import celery
+
+FALLBACK_MODEL = "gemini-3-flash-preview"
+
+
+def _friendly_error(exc: BaseException, model: str) -> str:
+    is_quota = (
+        (isinstance(exc, genai_errors.ClientError) and getattr(exc, "code", None) == 429)
+        or isinstance(exc, google_exc.ResourceExhausted)
+    )
+    if is_quota:
+        suggestion = (
+            f"Switch to {FALLBACK_MODEL}, recommended for most jobs and has higher rate limits."
+            if model != FALLBACK_MODEL
+            else "Please wait a few minutes before retrying, or check your Gemini API quota."
+        )
+        return (
+            f"{model} is currently rate limited and can't accept new requests right now. "
+            f"{suggestion}"
+        )
+    return f"{type(exc).__name__}: {exc}"
 
 logger = logging.getLogger(__name__)
 
@@ -110,11 +132,12 @@ async def _run(job_id_str: str, gemini_key: str) -> None:
 
         except Exception as exc:
             logger.exception("pipeline failed for %s", job_id_str)
+            message = _friendly_error(exc, job.model)
             job.status = JobStatus.error
-            job.error_message = f"{type(exc).__name__}: {exc}"
+            job.error_message = message
             job.completed_at = datetime.now(timezone.utc)
             await session.commit()
-            _emit(job_id_str, event="error", message=str(exc))
+            _emit(job_id_str, event="error", message=message)
         finally:
             progress.sync_client().decr(CONCURRENT_KEY.format(user_id=str(job.owner_id)))
 
@@ -141,7 +164,7 @@ async def _fail_hung() -> None:
         ).scalars().all()
         for job in rows:
             job.status = JobStatus.error
-            job.error_message = "Job timed out — no progress after 25 minutes."
+            job.error_message = "Job timed out, no progress after 25 minutes."
             job.completed_at = datetime.now(timezone.utc)
             logger.warning("timed out hung job %s", job.id)
         if rows:
