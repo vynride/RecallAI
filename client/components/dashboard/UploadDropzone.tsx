@@ -33,7 +33,6 @@ export function UploadDropzone({ models, defaultModel, hasSavedKey }: Props) {
   const [submitting, setSubmitting] = useState(false);
 
   const [sessionKey, setSessionKey] = useState("");
-  const [keyInput, setKeyInput] = useState("");
   const [showKey, setShowKey] = useState(false);
 
   useEffect(() => {
@@ -43,12 +42,11 @@ export function UploadDropzone({ models, defaultModel, hasSavedKey }: Props) {
 
   const hasKey = hasSavedKey || Boolean(sessionKey);
 
-  function saveKeyLocal() {
-    const trimmed = keyInput.trim();
+  function commitSessionKey(raw: string) {
+    const trimmed = raw.trim();
     if (!trimmed) return;
     saveSessionKey(trimmed);
     setSessionKey(trimmed);
-    setKeyInput("");
     toast.success("Key saved for this session");
     track("key_saved_session", {});
   }
@@ -113,14 +111,26 @@ export function UploadDropzone({ models, defaultModel, hasSavedKey }: Props) {
                 Get a free key
               </a>
             </p>
-            <div className="mt-3 flex gap-2">
+            <div className="mt-3">
               <div className="relative flex-1">
                 <input
                   type={showKey ? "text" : "password"}
-                  value={keyInput}
-                  onChange={(e) => setKeyInput(e.target.value)}
-                  onKeyDown={(e) => e.key === "Enter" && saveKeyLocal()}
-                  placeholder="AIza…"
+                  defaultValue=""
+                  onPaste={(e) => {
+                    const v = e.clipboardData.getData("text");
+                    if (!v.trim()) return;
+                    e.preventDefault();
+                    (e.currentTarget as HTMLInputElement).value = "";
+                    commitSessionKey(v);
+                  }}
+                  onBlur={(e) => {
+                    if (e.currentTarget.value.trim()) {
+                      const v = e.currentTarget.value;
+                      e.currentTarget.value = "";
+                      commitSessionKey(v);
+                    }
+                  }}
+                  placeholder="Paste your AIza… key"
                   className="w-full h-10 px-3 pr-9 rounded-sm border border-hairline bg-canvas font-mono text-sm focus:border-form-focus focus:outline-none"
                 />
                 <button
@@ -132,7 +142,6 @@ export function UploadDropzone({ models, defaultModel, hasSavedKey }: Props) {
                   {showKey ? <EyeOff size={15} /> : <Eye size={15} />}
                 </button>
               </div>
-              <Button onClick={saveKeyLocal} variant="outline">Save</Button>
             </div>
           </div>
           {hasSavedKey && (
