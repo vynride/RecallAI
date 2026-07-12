@@ -6,7 +6,7 @@ services:
     restart: unless-stopped
     environment:
       POSTGRES_USER: ${POSTGRES_USER:-recallai}
-      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-recallai}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:?set a strong POSTGRES_PASSWORD in .env}
       POSTGRES_DB: ${POSTGRES_DB:-recallai}
     volumes:
       - pg_data:/var/lib/postgresql/data
@@ -19,24 +19,27 @@ services:
   redis:
     image: redis:7-alpine
     restart: unless-stopped
-    command: ["redis-server", "--appendonly", "yes"]
+    command: ["redis-server", "--appendonly", "yes", "--requirepass", "${REDIS_PASSWORD:?set a strong REDIS_PASSWORD in .env}"]
     volumes:
       - redis_data:/data
     healthcheck:
-      test: ["CMD", "redis-cli", "ping"]
+      test: ["CMD-SHELL", "redis-cli -a \"$$REDIS_PASSWORD\" ping | grep -q PONG"]
       interval: 5s
       timeout: 3s
       retries: 10
+    environment:
+      REDIS_PASSWORD: ${REDIS_PASSWORD:?set a strong REDIS_PASSWORD in .env}
 
   backend:
     build: ./backend
     restart: unless-stopped
     env_file: .env
     environment:
-      DATABASE_URL: postgresql+asyncpg://${POSTGRES_USER:-recallai}:${POSTGRES_PASSWORD:-recallai}@postgres:5432/${POSTGRES_DB:-recallai}
-      REDIS_URL: redis://redis:6379/0
-      CELERY_BROKER_URL: redis://redis:6379/0
-      CELERY_RESULT_BACKEND: redis://redis:6379/1
+      ENVIRONMENT: production
+      DATABASE_URL: postgresql+asyncpg://${POSTGRES_USER:-recallai}:${POSTGRES_PASSWORD:?set a strong POSTGRES_PASSWORD in .env}@postgres:5432/${POSTGRES_DB:-recallai}
+      REDIS_URL: redis://:${REDIS_PASSWORD}@redis:6379/0
+      CELERY_BROKER_URL: redis://:${REDIS_PASSWORD}@redis:6379/0
+      CELERY_RESULT_BACKEND: redis://:${REDIS_PASSWORD}@redis:6379/1
     volumes:
       - recallai_uploads:/var/recallai/uploads
       - recallai_results:/var/recallai/results
@@ -50,10 +53,11 @@ services:
     restart: unless-stopped
     env_file: .env
     environment:
-      DATABASE_URL: postgresql+asyncpg://${POSTGRES_USER:-recallai}:${POSTGRES_PASSWORD:-recallai}@postgres:5432/${POSTGRES_DB:-recallai}
-      REDIS_URL: redis://redis:6379/0
-      CELERY_BROKER_URL: redis://redis:6379/0
-      CELERY_RESULT_BACKEND: redis://redis:6379/1
+      ENVIRONMENT: production
+      DATABASE_URL: postgresql+asyncpg://${POSTGRES_USER:-recallai}:${POSTGRES_PASSWORD:?set a strong POSTGRES_PASSWORD in .env}@postgres:5432/${POSTGRES_DB:-recallai}
+      REDIS_URL: redis://:${REDIS_PASSWORD}@redis:6379/0
+      CELERY_BROKER_URL: redis://:${REDIS_PASSWORD}@redis:6379/0
+      CELERY_RESULT_BACKEND: redis://:${REDIS_PASSWORD}@redis:6379/1
     volumes:
       - recallai_uploads:/var/recallai/uploads
       - recallai_results:/var/recallai/results
@@ -67,10 +71,11 @@ services:
     restart: unless-stopped
     env_file: .env
     environment:
-      DATABASE_URL: postgresql+asyncpg://${POSTGRES_USER:-recallai}:${POSTGRES_PASSWORD:-recallai}@postgres:5432/${POSTGRES_DB:-recallai}
-      REDIS_URL: redis://redis:6379/0
-      CELERY_BROKER_URL: redis://redis:6379/0
-      CELERY_RESULT_BACKEND: redis://redis:6379/1
+      ENVIRONMENT: production
+      DATABASE_URL: postgresql+asyncpg://${POSTGRES_USER:-recallai}:${POSTGRES_PASSWORD:?set a strong POSTGRES_PASSWORD in .env}@postgres:5432/${POSTGRES_DB:-recallai}
+      REDIS_URL: redis://:${REDIS_PASSWORD}@redis:6379/0
+      CELERY_BROKER_URL: redis://:${REDIS_PASSWORD}@redis:6379/0
+      CELERY_RESULT_BACKEND: redis://:${REDIS_PASSWORD}@redis:6379/1
     depends_on:
       redis: { condition: service_healthy }
     command: ["celery", "-A", "app.workers.celery_app", "beat", "--loglevel=info"]
@@ -81,10 +86,21 @@ services:
       args:
         NEXT_PUBLIC_SITE_URL: ${NEXT_PUBLIC_SITE_URL}
     restart: unless-stopped
-    env_file: .env
+    # Least privilege: the Next server gets ONLY the vars it needs — no
+    # GEMINI_KEY_PEPPER / DB / Redis secrets (which env_file: .env would inject).
     environment:
       BACKEND_URL: http://backend:8000
       NODE_ENV: production
+      AUTH_SECRET: ${AUTH_SECRET:?set AUTH_SECRET in .env}
+      NEXTAUTH_SECRET: ${NEXTAUTH_SECRET:?set NEXTAUTH_SECRET in .env}
+      AUTH_URL: ${AUTH_URL}
+      GOOGLE_CLIENT_ID: ${GOOGLE_CLIENT_ID}
+      GOOGLE_CLIENT_SECRET: ${GOOGLE_CLIENT_SECRET}
+      GITHUB_CLIENT_ID: ${GITHUB_CLIENT_ID}
+      GITHUB_CLIENT_SECRET: ${GITHUB_CLIENT_SECRET}
+      NEXT_PUBLIC_SITE_URL: ${NEXT_PUBLIC_SITE_URL}
+      NEXT_PUBLIC_UMAMI_WEBSITE_ID: ${NEXT_PUBLIC_UMAMI_WEBSITE_ID}
+      NEXT_PUBLIC_UMAMI_SCRIPT_URL: ${NEXT_PUBLIC_UMAMI_SCRIPT_URL}
     depends_on:
       backend: { condition: service_started }
 
@@ -93,7 +109,7 @@ services:
     restart: unless-stopped
     environment:
       POSTGRES_USER: ${UMAMI_DB_USER:-umami}
-      POSTGRES_PASSWORD: ${UMAMI_DB_PASSWORD:-umami}
+      POSTGRES_PASSWORD: ${UMAMI_DB_PASSWORD:?set a strong UMAMI_DB_PASSWORD in .env}
       POSTGRES_DB: ${UMAMI_DB_NAME:-umami}
     volumes:
       - umami_pg_data:/var/lib/postgresql/data
@@ -107,9 +123,9 @@ services:
     image: ghcr.io/umami-software/umami:postgresql-latest
     restart: unless-stopped
     environment:
-      DATABASE_URL: postgresql://${UMAMI_DB_USER:-umami}:${UMAMI_DB_PASSWORD:-umami}@umami-db:5432/${UMAMI_DB_NAME:-umami}
+      DATABASE_URL: postgresql://${UMAMI_DB_USER:-umami}:${UMAMI_DB_PASSWORD:?set UMAMI_DB_PASSWORD in .env}@umami-db:5432/${UMAMI_DB_NAME:-umami}
       DATABASE_TYPE: postgresql
-      APP_SECRET: ${UMAMI_APP_SECRET:-change-me}
+      APP_SECRET: ${UMAMI_APP_SECRET:?set a strong UMAMI_APP_SECRET in .env}
     depends_on:
       umami-db: { condition: service_healthy }
 

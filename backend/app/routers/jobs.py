@@ -1,6 +1,8 @@
 from __future__ import annotations
 
 import json
+import os
+import re
 import shutil
 from uuid import UUID, uuid4
 
@@ -23,6 +25,7 @@ from sse_starlette.sse import EventSourceResponse
 from app.config import GEMINI_MODELS, SETTINGS
 from app.deps import current_user, db_session
 from app.models import Job, JobStatus, User
+from app.ratelimit import limiter
 from app.schemas import JobOut, JobSummary
 from app.services import key_crypto, progress
 from app.workers import tasks
@@ -47,6 +50,7 @@ def _to_out(job: Job) -> JobOut:
 
 
 @router.post("", response_model=JobOut, status_code=status.HTTP_202_ACCEPTED)
+@limiter.limit(SETTINGS.rate_limit_upload)
 async def create_job(
     request: Request,
     files: list[UploadFile] = File(...),
@@ -89,19 +93,36 @@ async def create_job(
     job_dir.mkdir(parents=True, exist_ok=True)
 
     max_bytes = SETTINGS.max_upload_size_mb * 1024 * 1024
+    chunk_size = 1024 * 1024
+    job_root = job_dir.resolve()
     written = 0
     file_count = 0
-    for upload in files:
-        if not (upload.filename or "").lower().endswith(".pdf"):
-            tasks.release_slot(str(user.id))
-            raise HTTPException(status.HTTP_400_BAD_REQUEST, "only .pdf files accepted")
-        contents = await upload.read()
-        written += len(contents)
-        if written > max_bytes:
-            tasks.release_slot(str(user.id))
-            raise HTTPException(status.HTTP_413_REQUEST_ENTITY_TOO_LARGE, "upload too large")
-        (job_dir / upload.filename).write_bytes(contents)
-        file_count += 1
+    try:
+        for i, upload in enumerate(files):
+            base = os.path.basename(upload.filename or "")
+            if not base.lower().endswith(".pdf"):
+                raise HTTPException(status.HTTP_400_BAD_REQUEST, "only .pdf files accepted")
+            # Never derive a filesystem path from the client-supplied filename (CWE-22):
+            # reduce to a sanitized stem and build a server-controlled name. The index
+            # prefix keeps it unique; the is_relative_to guard is defense-in-depth.
+            stem = re.sub(r"[^A-Za-z0-9._-]", "_", base.rsplit(".", 1)[0])[:100] or "file"
+            dest = (job_dir / f"{i}_{stem}.pdf").resolve()
+            if not dest.is_relative_to(job_root):
+                raise HTTPException(status.HTTP_400_BAD_REQUEST, "invalid filename")
+            with dest.open("wb") as fh:
+                # Stream to disk so an oversized body is aborted before it is fully buffered.
+                while chunk := await upload.read(chunk_size):
+                    written += len(chunk)
+                    if written > max_bytes:
+                        raise HTTPException(
+                            status.HTTP_413_REQUEST_ENTITY_TOO_LARGE, "upload too large"
+                        )
+                    fh.write(chunk)
+            file_count += 1
+    except HTTPException:
+        tasks.release_slot(str(user.id))
+        shutil.rmtree(job_dir, ignore_errors=True)
+        raise
 
     job.file_count = file_count
     await session.commit()
@@ -191,7 +212,9 @@ async def delete_job(
 
 
 @router.post("/{job_id}/rerun", response_model=JobOut, status_code=status.HTTP_202_ACCEPTED)
+@limiter.limit(SETTINGS.rate_limit_upload)
 async def rerun_job(
+    request: Request,
     job_id: UUID,
     model: str = Form(SETTINGS.default_model),
     use_saved_key: bool = Form(False),

@@ -30,10 +30,12 @@ async def current_user(
             token,
             SETTINGS.nextauth_secret,
             algorithms=[SETTINGS.jwt_algorithm],
-            options={"verify_aud": False},
+            # require_exp: reject tokens with no expiry (they would never age out).
+            options={"verify_aud": False, "require_exp": True},
         )
     except JWTError as exc:
-        raise HTTPException(status.HTTP_401_UNAUTHORIZED, f"invalid token: {exc}") from exc
+        # Don't echo library internals back to the caller.
+        raise HTTPException(status.HTTP_401_UNAUTHORIZED, "invalid or expired token") from exc
 
     provider = payload.get("provider")
     subject = payload.get("sub")

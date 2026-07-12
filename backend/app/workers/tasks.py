@@ -35,7 +35,11 @@ def _friendly_error(exc: BaseException, model: str) -> str:
             f"{model} is currently rate limited and can't accept new requests right now. "
             f"{suggestion}"
         )
-    return f"{type(exc).__name__}: {exc}"
+    # Don't surface raw exception internals to the client; full detail is logged.
+    return (
+        "Processing failed due to an unexpected error. Please try again; if it persists, "
+        "verify your Gemini API key and that the uploaded PDF is valid."
+    )
 
 logger = logging.getLogger(__name__)
 

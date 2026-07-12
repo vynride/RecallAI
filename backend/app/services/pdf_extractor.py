@@ -11,6 +11,8 @@ import fitz
 import numpy as np
 from PIL import Image
 
+from app.config import SETTINGS
+
 logger = logging.getLogger(__name__)
 
 _easyocr_reader = None
@@ -83,11 +85,18 @@ def extract_document(
     use_ocr: bool = True,
     extract_images: bool = True,
 ) -> ExtractedDocument:
+    if not pdf_bytes.startswith(b"%PDF-"):
+        raise ValueError(f"{filename}: not a valid PDF (bad magic bytes)")
+
     doc = fitz.open(stream=pdf_bytes, filetype="pdf")
     images: list[ExtractedImage] = []
     parts: list[str] = []
 
     try:
+        if doc.page_count > SETTINGS.max_pdf_pages:
+            raise ValueError(
+                f"{filename}: {doc.page_count} pages exceeds the limit of {SETTINGS.max_pdf_pages}"
+            )
         for page_num, page in enumerate(doc, start=1):
             text = page.get_text().strip()
             if use_ocr and len(text) < 50:
@@ -95,8 +104,11 @@ def extract_document(
                 if len(ocr_text) > len(text):
                     text = ocr_text
 
-            if extract_images:
+            if extract_images and len(images) < SETTINGS.max_extracted_images:
                 for img_index, img in enumerate(page.get_images()):
+                    if len(images) >= SETTINGS.max_extracted_images:
+                        logger.warning("image cap (%d) reached; skipping rest", SETTINGS.max_extracted_images)
+                        break
                     try:
                         xref = img[0]
                         base = doc.extract_image(xref)

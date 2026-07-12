@@ -13,6 +13,16 @@ import { auth } from "@/lib/auth";
 const API_URL = process.env.BACKEND_URL ?? "http://backend:8000";
 const SECRET = process.env.NEXTAUTH_SECRET!;
 
+// The catch-all is concatenated into the backend URL, so guard against path
+// traversal (encoded `..`) escaping the /api/ scope, and allow-list the routes
+// the client actually calls.
+const ALLOWED_PREFIXES = new Set(["jobs", "me", "models"]);
+
+function isSafePath(path: string[]): boolean {
+  if (path.length === 0 || !ALLOWED_PREFIXES.has(path[0])) return false;
+  return path.every((seg) => seg.length > 0 && !seg.includes("/") && !seg.includes("\\") && seg !== ".." && seg !== ".");
+}
+
 async function makeBackendToken(provider: string, sub: string, extras: Record<string, unknown>) {
   return await new SignJWT({ provider, ...extras })
     .setProtectedHeader({ alg: "HS256" })
@@ -28,6 +38,9 @@ async function handle(req: Request, ctx: RouteContext<"/api/proxy/[...path]">) {
     return NextResponse.json({ detail: "unauthorized" }, { status: 401 });
   }
   const { path } = await ctx.params;
+  if (!isSafePath(path)) {
+    return NextResponse.json({ detail: "not found" }, { status: 404 });
+  }
   const url = new URL(req.url);
   const target = `${API_URL}/api/${path.join("/")}${url.search}`;
 

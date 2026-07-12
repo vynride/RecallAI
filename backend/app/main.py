@@ -3,25 +3,12 @@ from contextlib import asynccontextmanager
 from fastapi import FastAPI, Request
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse
-from slowapi import Limiter
 from slowapi.errors import RateLimitExceeded
 from slowapi.middleware import SlowAPIMiddleware
-from slowapi.util import get_remote_address
 
 from app.config import SETTINGS
+from app.ratelimit import limiter
 from app.routers import auth, health, jobs
-
-
-def _rate_limit_key(request: Request) -> str:
-    user_id = getattr(request.state, "user_id", None)
-    return user_id or get_remote_address(request)
-
-
-limiter = Limiter(
-    key_func=_rate_limit_key,
-    default_limits=[SETTINGS.rate_limit_default],
-    storage_uri=SETTINGS.redis_url,
-)
 
 
 @asynccontextmanager
@@ -29,12 +16,18 @@ async def lifespan(app: FastAPI):
     yield
 
 
+_cors_origins = [o.strip() for o in SETTINGS.allowed_origins.split(",") if o.strip()]
+# Fail closed: credentialed CORS with a wildcard origin would let any site make
+# authenticated cross-origin requests. Starlette reflects the origin in that case.
+if "*" in _cors_origins:
+    raise RuntimeError("ALLOWED_ORIGINS must be explicit origins, not '*', with credentials enabled")
+
 app = FastAPI(title="RecallAI", version="2.0.0", lifespan=lifespan)
 app.state.limiter = limiter
 app.add_middleware(SlowAPIMiddleware)
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=[o.strip() for o in SETTINGS.allowed_origins.split(",") if o.strip()],
+    allow_origins=_cors_origins,
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
