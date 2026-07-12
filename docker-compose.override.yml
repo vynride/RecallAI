@@ -1,14 +1,13 @@
 # Development overrides — applied automatically by `docker compose up`.
-# Source is bind-mounted so code changes are picked up without rebuilding.
 #
-# Frontend note: node_modules stays inside the container (from the image build).
-# Only source directories are mounted. If you add packages, rebuild:
-#   docker compose build frontend
+# Postgres + Redis come from the base compose (same internal `backend` network).
+# Umami is host-managed (leave NEXT_PUBLIC_UMAMI_* blank to disable locally).
+# Source is bind-mounted so code changes are picked up without rebuilding.
 
 services:
   backend:
     ports:
-      - "127.0.0.1:8000:8000"
+      - "127.0.0.1:8005:8000"   # local API access for debugging (loopback only)
     environment:
       ENVIRONMENT: development
     volumes:
@@ -30,13 +29,9 @@ services:
     volumes:
       - ./backend/app:/app/app
 
-  umami:
-    ports:
-      - "127.0.0.1:3001:3000"
-
   frontend:
     ports:
-      - "127.0.0.1:3000:3000"
+      - "127.0.0.1:3005:3000"
     build:
       context: ./client
       target: deps

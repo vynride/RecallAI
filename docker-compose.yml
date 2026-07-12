@@ -1,4 +1,15 @@
-# Local development compose. 
+# Base compose.
+#
+# Network topology:
+#   • backend  (internal: true) — postgres, redis, and the Python services. No
+#                                 route to the host or internet; not publishable.
+#   • web      (bridge)         — outbound access (Gemini API, OAuth) + the path
+#                                 nginx -> frontend -> backend. Postgres/Redis are
+#                                 NOT on this network, so the frontend can't reach
+#                                 them directly.
+#
+# Only the frontend is exposed (loopback, behind host nginx — see deploy/nginx/).
+# Postgres + Redis run in Docker; Umami is host-managed (set NEXT_PUBLIC_UMAMI_*).
 
 services:
   postgres:
@@ -10,6 +21,7 @@ services:
       POSTGRES_DB: ${POSTGRES_DB:-recallai}
     volumes:
       - pg_data:/var/lib/postgresql/data
+    networks: [backend]
     healthcheck:
       test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER:-recallai} -d ${POSTGRES_DB:-recallai}"]
       interval: 5s
@@ -22,13 +34,14 @@ services:
     command: ["redis-server", "--appendonly", "yes", "--requirepass", "${REDIS_PASSWORD:?set a strong REDIS_PASSWORD in .env}"]
     volumes:
       - redis_data:/data
+    networks: [backend]
+    environment:
+      REDIS_PASSWORD: ${REDIS_PASSWORD:?set a strong REDIS_PASSWORD in .env}
     healthcheck:
       test: ["CMD-SHELL", "redis-cli -a \"$$REDIS_PASSWORD\" ping | grep -q PONG"]
       interval: 5s
       timeout: 3s
       retries: 10
-    environment:
-      REDIS_PASSWORD: ${REDIS_PASSWORD:?set a strong REDIS_PASSWORD in .env}
 
   backend:
     build: ./backend
@@ -36,10 +49,11 @@ services:
     env_file: .env
     environment:
       ENVIRONMENT: production
-      DATABASE_URL: postgresql+asyncpg://${POSTGRES_USER:-recallai}:${POSTGRES_PASSWORD:?set a strong POSTGRES_PASSWORD in .env}@postgres:5432/${POSTGRES_DB:-recallai}
+      DATABASE_URL: postgresql+asyncpg://${POSTGRES_USER:-recallai}:${POSTGRES_PASSWORD}@postgres:5432/${POSTGRES_DB:-recallai}
       REDIS_URL: redis://:${REDIS_PASSWORD}@redis:6379/0
       CELERY_BROKER_URL: redis://:${REDIS_PASSWORD}@redis:6379/0
       CELERY_RESULT_BACKEND: redis://:${REDIS_PASSWORD}@redis:6379/1
+    networks: [backend, web]
     volumes:
       - recallai_uploads:/var/recallai/uploads
       - recallai_results:/var/recallai/results
@@ -54,29 +68,34 @@ services:
     env_file: .env
     environment:
       ENVIRONMENT: production
-      DATABASE_URL: postgresql+asyncpg://${POSTGRES_USER:-recallai}:${POSTGRES_PASSWORD:?set a strong POSTGRES_PASSWORD in .env}@postgres:5432/${POSTGRES_DB:-recallai}
+      DATABASE_URL: postgresql+asyncpg://${POSTGRES_USER:-recallai}:${POSTGRES_PASSWORD}@postgres:5432/${POSTGRES_DB:-recallai}
       REDIS_URL: redis://:${REDIS_PASSWORD}@redis:6379/0
       CELERY_BROKER_URL: redis://:${REDIS_PASSWORD}@redis:6379/0
       CELERY_RESULT_BACKEND: redis://:${REDIS_PASSWORD}@redis:6379/1
+    networks: [backend, web]
     volumes:
       - recallai_uploads:/var/recallai/uploads
       - recallai_results:/var/recallai/results
     depends_on:
-      backend: { condition: service_started }
+      postgres: { condition: service_healthy }
       redis: { condition: service_healthy }
     command: ["celery", "-A", "app.workers.celery_app", "worker", "-Q", "pipeline", "-c", "${CELERY_CONCURRENCY:-4}", "--loglevel=info"]
 
+  # Celery Beat — scheduler for periodic maintenance (workers/celery_app.py):
+  # cleanup_expired_jobs (TTL eviction) + fail_hung_jobs. No outbound access.
   beat:
     build: ./backend
     restart: unless-stopped
     env_file: .env
     environment:
       ENVIRONMENT: production
-      DATABASE_URL: postgresql+asyncpg://${POSTGRES_USER:-recallai}:${POSTGRES_PASSWORD:?set a strong POSTGRES_PASSWORD in .env}@postgres:5432/${POSTGRES_DB:-recallai}
+      DATABASE_URL: postgresql+asyncpg://${POSTGRES_USER:-recallai}:${POSTGRES_PASSWORD}@postgres:5432/${POSTGRES_DB:-recallai}
       REDIS_URL: redis://:${REDIS_PASSWORD}@redis:6379/0
       CELERY_BROKER_URL: redis://:${REDIS_PASSWORD}@redis:6379/0
       CELERY_RESULT_BACKEND: redis://:${REDIS_PASSWORD}@redis:6379/1
+    networks: [backend]
     depends_on:
+      postgres: { condition: service_healthy }
       redis: { condition: service_healthy }
     command: ["celery", "-A", "app.workers.celery_app", "beat", "--loglevel=info"]
 
@@ -86,8 +105,9 @@ services:
       args:
         NEXT_PUBLIC_SITE_URL: ${NEXT_PUBLIC_SITE_URL}
     restart: unless-stopped
-    # Least privilege: the Next server gets ONLY the vars it needs — no
-    # GEMINI_KEY_PEPPER / DB / Redis secrets (which env_file: .env would inject).
+    # On `web` only — the frontend cannot reach Postgres/Redis directly.
+    # Least privilege: only the vars the Next server needs (no DB secrets).
+    networks: [web]
     environment:
       BACKEND_URL: http://backend:8000
       NODE_ENV: production
@@ -104,34 +124,12 @@ services:
     depends_on:
       backend: { condition: service_started }
 
-  umami-db:
-    image: postgres:16
-    restart: unless-stopped
-    environment:
-      POSTGRES_USER: ${UMAMI_DB_USER:-umami}
-      POSTGRES_PASSWORD: ${UMAMI_DB_PASSWORD:?set a strong UMAMI_DB_PASSWORD in .env}
-      POSTGRES_DB: ${UMAMI_DB_NAME:-umami}
-    volumes:
-      - umami_pg_data:/var/lib/postgresql/data
-    healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U ${UMAMI_DB_USER:-umami} -d ${UMAMI_DB_NAME:-umami}"]
-      interval: 5s
-      timeout: 3s
-      retries: 10
+networks:
+  backend:
+    internal: true
+  web:
+    driver: bridge
 
-  umami:
-    image: ghcr.io/umami-software/umami:postgresql-latest
-    restart: unless-stopped
-    environment:
-      DATABASE_URL: postgresql://${UMAMI_DB_USER:-umami}:${UMAMI_DB_PASSWORD:?set UMAMI_DB_PASSWORD in .env}@umami-db:5432/${UMAMI_DB_NAME:-umami}
-      DATABASE_TYPE: postgresql
-      APP_SECRET: ${UMAMI_APP_SECRET:?set a strong UMAMI_APP_SECRET in .env}
-    depends_on:
-      umami-db: { condition: service_healthy }
-
-# Volumes are bind-mounted onto a Linux-native FS path (RECALLAI_DATA_DIR) because
-# the project lives on an NTFS/FUSE mount that doesn't honor POSIX chmod, which
-# breaks Postgres/Redis init.
 volumes:
   pg_data:
     driver: local
@@ -157,9 +155,3 @@ volumes:
       type: none
       o: bind
       device: ${RECALLAI_DATA_DIR}/recallai_results
-  umami_pg_data:
-    driver: local
-    driver_opts:
-      type: none
-      o: bind
-      device: ${RECALLAI_DATA_DIR}/umami_pg_data
