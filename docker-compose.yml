@@ -1,40 +1,26 @@
 # Base compose.
 #
-# Network topology:
-#   • backend  (internal: true) — postgres, redis, and the Python services. No
-#                                 route to the host or internet; not publishable.
-#   • web      (bridge)         — outbound access (Gemini API, OAuth) + the path
-#                                 nginx -> frontend -> backend. Postgres/Redis are
-#                                 NOT on this network, so the frontend can't reach
-#                                 them directly.
+# Postgres is EXTERNAL — this stack does NOT run it. Set DATABASE_URL in .env to
+# your existing instance. In production the app joins your existing `backend`
+# Docker network to reach it (docker-compose.prod.yml); in local dev a throwaway
+# Postgres container is provided (docker-compose.override.yml).
 #
-# Only the frontend is exposed (loopback, behind host nginx — see deploy/nginx/).
-# Postgres + Redis run in Docker; Umami is host-managed (set NEXT_PUBLIC_UMAMI_*).
+# Redis runs in Docker (Celery broker + result backend) on an internal app
+# network. Umami is host-managed. Only the frontend is published (behind nginx).
+#
+# Networks:
+#   • appnet (internal) — redis + Python services. No host/internet route.
+#   • web    (bridge)   — outbound (Gemini/OAuth) + nginx→frontend→backend.
+#     The frontend is on `web` only, so it cannot reach redis/postgres directly.
 
 services:
-  postgres:
-    image: postgres:16
-    restart: unless-stopped
-    environment:
-      POSTGRES_USER: ${POSTGRES_USER:-recallai}
-      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:?set a strong POSTGRES_PASSWORD in .env}
-      POSTGRES_DB: ${POSTGRES_DB:-recallai}
-    volumes:
-      - pg_data:/var/lib/postgresql/data
-    networks: [backend]
-    healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER:-recallai} -d ${POSTGRES_DB:-recallai}"]
-      interval: 5s
-      timeout: 3s
-      retries: 10
-
   redis:
     image: redis:7-alpine
     restart: unless-stopped
     command: ["redis-server", "--appendonly", "yes", "--requirepass", "${REDIS_PASSWORD:?set a strong REDIS_PASSWORD in .env}"]
     volumes:
       - redis_data:/data
-    networks: [backend]
+    networks: [appnet]
     environment:
       REDIS_PASSWORD: ${REDIS_PASSWORD:?set a strong REDIS_PASSWORD in .env}
     healthcheck:
@@ -46,19 +32,17 @@ services:
   backend:
     build: ./backend
     restart: unless-stopped
-    env_file: .env
+    env_file: .env          # provides DATABASE_URL (your external Postgres)
     environment:
       ENVIRONMENT: production
-      DATABASE_URL: postgresql+asyncpg://${POSTGRES_USER:-recallai}:${POSTGRES_PASSWORD}@postgres:5432/${POSTGRES_DB:-recallai}
       REDIS_URL: redis://:${REDIS_PASSWORD}@redis:6379/0
       CELERY_BROKER_URL: redis://:${REDIS_PASSWORD}@redis:6379/0
       CELERY_RESULT_BACKEND: redis://:${REDIS_PASSWORD}@redis:6379/1
-    networks: [backend, web]
+    networks: [appnet, web]
     volumes:
       - recallai_uploads:/var/recallai/uploads
       - recallai_results:/var/recallai/results
     depends_on:
-      postgres: { condition: service_healthy }
       redis: { condition: service_healthy }
     command: ["sh", "-c", "alembic upgrade head && uvicorn app.main:app --host 0.0.0.0 --port 8000 --workers 2"]
 
@@ -68,34 +52,30 @@ services:
     env_file: .env
     environment:
       ENVIRONMENT: production
-      DATABASE_URL: postgresql+asyncpg://${POSTGRES_USER:-recallai}:${POSTGRES_PASSWORD}@postgres:5432/${POSTGRES_DB:-recallai}
       REDIS_URL: redis://:${REDIS_PASSWORD}@redis:6379/0
       CELERY_BROKER_URL: redis://:${REDIS_PASSWORD}@redis:6379/0
       CELERY_RESULT_BACKEND: redis://:${REDIS_PASSWORD}@redis:6379/1
-    networks: [backend, web]
+    networks: [appnet, web]
     volumes:
       - recallai_uploads:/var/recallai/uploads
       - recallai_results:/var/recallai/results
     depends_on:
-      postgres: { condition: service_healthy }
       redis: { condition: service_healthy }
     command: ["celery", "-A", "app.workers.celery_app", "worker", "-Q", "pipeline", "-c", "${CELERY_CONCURRENCY:-4}", "--loglevel=info"]
 
-  # Celery Beat — scheduler for periodic maintenance (workers/celery_app.py):
-  # cleanup_expired_jobs (TTL eviction) + fail_hung_jobs. No outbound access.
+  # Celery Beat — scheduler (workers/celery_app.py): cleanup_expired_jobs +
+  # fail_hung_jobs. Only talks to Redis, so it stays on appnet.
   beat:
     build: ./backend
     restart: unless-stopped
     env_file: .env
     environment:
       ENVIRONMENT: production
-      DATABASE_URL: postgresql+asyncpg://${POSTGRES_USER:-recallai}:${POSTGRES_PASSWORD}@postgres:5432/${POSTGRES_DB:-recallai}
       REDIS_URL: redis://:${REDIS_PASSWORD}@redis:6379/0
       CELERY_BROKER_URL: redis://:${REDIS_PASSWORD}@redis:6379/0
       CELERY_RESULT_BACKEND: redis://:${REDIS_PASSWORD}@redis:6379/1
-    networks: [backend]
+    networks: [appnet]
     depends_on:
-      postgres: { condition: service_healthy }
       redis: { condition: service_healthy }
     command: ["celery", "-A", "app.workers.celery_app", "beat", "--loglevel=info"]
 
@@ -105,8 +85,7 @@ services:
       args:
         NEXT_PUBLIC_SITE_URL: ${NEXT_PUBLIC_SITE_URL}
     restart: unless-stopped
-    # On `web` only — the frontend cannot reach Postgres/Redis directly.
-    # Least privilege: only the vars the Next server needs (no DB secrets).
+    # On `web` only — cannot reach redis/postgres. Least-privilege env.
     networks: [web]
     environment:
       BACKEND_URL: http://backend:8000
@@ -125,18 +104,12 @@ services:
       backend: { condition: service_started }
 
 networks:
-  backend:
+  appnet:
     internal: true
   web:
     driver: bridge
 
 volumes:
-  pg_data:
-    driver: local
-    driver_opts:
-      type: none
-      o: bind
-      device: ${RECALLAI_DATA_DIR}/pg_data
   redis_data:
     driver: local
     driver_opts:

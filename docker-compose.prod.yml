@@ -1,10 +1,13 @@
 # Production overlay. Deploy with:
 #   docker compose -f docker-compose.yml -f docker-compose.prod.yml up -d --build
 #
-# ONLY the frontend is published, to loopback, behind the host nginx that
-# terminates TLS (see deploy/nginx/recallai.conf). The backend is never exposed —
-# it is reached only via the frontend's authenticated /api/proxy over the `web`
-# network. Postgres + Redis sit on the internal `backend` network (no host route).
+# Postgres is your existing/hosted instance. backend + worker join your EXISTING
+# external `backend` Docker network to reach it — set DATABASE_URL in .env to that
+# instance (reached by its container name on the `backend` network). The network
+# must already exist (`docker network ls | grep backend`); compose will not create it.
+#
+# ONLY the frontend is published (loopback), behind the host nginx that terminates
+# TLS. The backend is never exposed — reached only via the frontend's /api/proxy.
 #
 # `no-new-privileges` blocks setuid escalation on every service.
 # NOTE (F7 follow-up): backend/worker/beat still run as root so they can write the
@@ -20,21 +23,19 @@ services:
       - no-new-privileges:true
 
   backend:
+    networks: [dbnet]           # + appnet, web from the base compose
     restart: unless-stopped
     security_opt:
       - no-new-privileges:true
 
   worker:
+    networks: [dbnet]           # + appnet, web from the base compose
     restart: unless-stopped
     security_opt:
       - no-new-privileges:true
 
+  # beat only talks to Redis — it stays on appnet (no DB network needed).
   beat:
-    restart: unless-stopped
-    security_opt:
-      - no-new-privileges:true
-
-  postgres:
     restart: unless-stopped
     security_opt:
       - no-new-privileges:true
@@ -43,3 +44,9 @@ services:
     restart: unless-stopped
     security_opt:
       - no-new-privileges:true
+
+networks:
+  # Your existing Postgres network. Rename `name:` if yours differs.
+  dbnet:
+    external: true
+    name: backend
