@@ -1,7 +1,7 @@
 from functools import lru_cache
 from pathlib import Path
 
-from pydantic import Field
+from pydantic import Field, model_validator
 from pydantic_settings import BaseSettings, SettingsConfigDict
 
 
@@ -16,6 +16,8 @@ class Settings(BaseSettings):
     upload_dir: Path = Path("/var/recallai/uploads")
     result_dir: Path = Path("/var/recallai/results")
     max_upload_size_mb: int = 50
+    max_pdf_pages: int = 300          # hard cap per document — bounds OCR/render work
+    max_extracted_images: int = 100   # hard cap on embedded images pulled into memory
     job_ttl_hours: int = 24
 
     # auth (shared with NextAuth)
@@ -41,6 +43,28 @@ class Settings(BaseSettings):
 
     # gemini
     default_model: str = "gemini-3-flash-preview"
+
+    @model_validator(mode="after")
+    def _require_strong_secrets(self) -> "Settings":
+        """Fail closed: outside development, refuse to boot with weak/default secrets.
+
+        Guards the two trust anchors — the shared JWT secret (auth bypass if the dev
+        default leaks) and the key-encryption pepper (stored-key disclosure). Set
+        ENVIRONMENT=development to relax this locally.
+        """
+        if self.environment.lower() == "development":
+            return self
+        for name, value in (
+            ("NEXTAUTH_SECRET", self.nextauth_secret),
+            ("GEMINI_KEY_PEPPER", self.gemini_key_pepper),
+        ):
+            if not value or value.startswith("dev-") or len(value) < 32:
+                raise ValueError(
+                    f"{name} must be a strong secret (>=32 chars, not the dev default) "
+                    f"when ENVIRONMENT is not 'development'. Generate with: "
+                    f"openssl rand -base64 32"
+                )
+        return self
 
 
 @lru_cache

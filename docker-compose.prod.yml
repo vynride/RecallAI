@@ -1,4 +1,13 @@
-version: "3.9"
+# Production overlay. Deploy with:
+#   docker compose -f docker-compose.yml -f docker-compose.prod.yml up -d --build
+# (This does NOT include docker-compose.override.yml, so the dev 0.0.0.0 ports
+# and ENVIRONMENT=development do not apply.)
+#
+# `no-new-privileges` blocks setuid-based privilege escalation on every service.
+# NOTE (F7 follow-up): the backend/worker/beat containers still run as root so
+# they can write to the RECALLAI_DATA_DIR bind mounts. To run them non-root,
+# chown the data subdirs to the container uid (or add a gosu entrypoint) and then
+# add `cap_drop: [ALL]` here.
 
 services:
   backend:
@@ -9,6 +18,8 @@ services:
     ports:
       - "127.0.0.1:8000:8000"
     restart: unless-stopped
+    security_opt:
+      - no-new-privileges:true
 
   worker:
     deploy:
@@ -16,6 +27,13 @@ services:
         limits:
           memory: 2G
     restart: unless-stopped
+    security_opt:
+      - no-new-privileges:true
+
+  beat:
+    restart: unless-stopped
+    security_opt:
+      - no-new-privileges:true
 
   frontend:
     deploy:
@@ -25,6 +43,8 @@ services:
     ports:
       - "127.0.0.1:3000:3000"
     restart: unless-stopped
+    security_opt:
+      - no-new-privileges:true
 
   postgres:
     deploy:
@@ -32,6 +52,8 @@ services:
         limits:
           memory: 1G
     restart: unless-stopped
+    security_opt:
+      - no-new-privileges:true
 
   redis:
     deploy:
@@ -39,6 +61,8 @@ services:
         limits:
           memory: 256M
     restart: unless-stopped
+    security_opt:
+      - no-new-privileges:true
 
   umami:
     deploy:
@@ -48,3 +72,5 @@ services:
     ports:
       - "127.0.0.1:3001:3000"
     restart: unless-stopped
+    security_opt:
+      - no-new-privileges:true

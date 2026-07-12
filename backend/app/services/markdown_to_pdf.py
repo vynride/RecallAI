@@ -13,9 +13,24 @@ from html import escape
 from pathlib import Path
 
 import markdown2
-from weasyprint import HTML
+from weasyprint import HTML, default_url_fetcher
 
 PDF_CSS = (Path(__file__).resolve().parent.parent / "templates" / "pdf_styles.css").read_text()
+
+
+def _safe_url_fetcher(url: str, *args, **kwargs):
+    """Block SSRF / local-file reads during rendering.
+
+    The document HTML is built from Gemini output, which is derived from untrusted
+    uploaded PDFs (a prompt-injection surface). WeasyPrint's default fetcher would
+    resolve `http(s)://`, `file://`, and `data:` resources referenced by `<img>`/CSS.
+    We allow only inline `data:` URIs — everything the template needs is inline
+    (SVGs in HTML, CSS via <style>, fonts via fontconfig), so nothing legitimate is
+    fetched over the network or filesystem.
+    """
+    if not url.lower().startswith("data:"):
+        raise ValueError(f"blocked external resource in rendered PDF: {url!r}")
+    return default_url_fetcher(url, *args, **kwargs)
 
 _TAG_RE = re.compile(r"\*Tags:\s*(Easy|Moderate|Challenging),\s*([^\*]+)\*", re.IGNORECASE)
 
@@ -179,4 +194,4 @@ def markdown_to_pdf(md: str, *, title: str = "RecallAI: Question papers, decoded
         f"<style>{PDF_CSS}</style>"
         f"</head><body>{_build_cover(title)}{body}</body></html>"
     )
-    return HTML(string=doc).write_pdf()
+    return HTML(string=doc, url_fetcher=_safe_url_fetcher).write_pdf()
