@@ -27,7 +27,7 @@ dependencies = [
   "pillow>=11.0",
   "numpy>=2.0",
   "markdown2>=2.5",
-  "weasyprint>=63",
+  "weasyprint>=63,<70",  # 70 removed default_url_fetcher (used by markdown_to_pdf)
   "cryptography>=44.0",
   "sse-starlette>=2.1",
 ]
